@@ -41,3 +41,6 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
+
+# Design and PM files
+user-feedback.md
