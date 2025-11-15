@@ -117,15 +117,35 @@ Track all features to be built, ordered logically by dependencies. Check off as 
   - Form to add new logs
 - [x] Make goal name in task cards clickable (navigates to goal details)
 
-### Progress Tracking - Blocker Management (IN PROGRESS ⏳)
-- [ ] Blocker input field in action log form
-- [ ] Blocker status tracking (active/resolved)
-- [ ] Blocker list view with filtering
-- [ ] Mark blocker as resolved
-- [ ] AI suggestion for unblocking strategies (optional)
-- [ ] Blocker count badge on goal card
+### Progress Tracking - Blocker Management (COMPLETED ✅)
+- [x] Blocker input field in action log form
+  - Added optional blocker_description field (conditionally shown when status='blocked')
+  - Auto-sets blocker_status to 'active' when blocker is logged
+- [x] Blocker status tracking (active/resolved)
+  - Added blocker_status column to action_logs table (migration: 20250116000000_add_blocker_status.sql)
+  - Task status auto-updates to 'blocked' when active blocker is logged
+- [x] Mark blocker as resolved
+  - Added "Mark Resolved" button for active blockers in timeline
+  - Updates blocker_status from 'active' to 'resolved'
+  - Resolved blockers display with gray background instead of red
+- [x] Delete action logs functionality
+  - Delete button added to each action log in timeline
+  - Includes confirmation dialog before deletion
+- [x] Blocker count badge on goal card
+  - Shows count of tasks with active blockers per goal
+  - Displays red badge with blocker count on goal cards
+- [ ] AI suggestion for unblocking strategies (optional - deferred)
 
-### Progress Visualization (IN PROGRESS ⏳)
+### AI Features - Self-Assessment Generation (IN PROGRESS ⏳)
+- [ ] API route for self-assessment summary
+  - Input: goal + all action logs
+  - Output: narrative summary for performance review
+- [ ] Claude prompt template for self-assessment
+- [ ] Self-assessment view/modal
+- [ ] Edit/customize generated assessment
+- [ ] Save assessment versions
+
+### Progress Visualization (NOT STARTED ⏳)
 - [ ] Task completion percentage chart per goal
 - [ ] Timeline view of action logs
 - [ ] Progress indicators (on_track vs at_risk vs blocked)
@@ -141,15 +161,6 @@ Track all features to be built, ordered logically by dependencies. Check off as 
 - [ ] Coaching feedback display on goal page
 - [ ] Coaching history view
 - [ ] Rate limiting for coaching API
-
-### AI Features - Self-Assessment Generation (NOT STARTED ⏳)
-- [ ] API route for self-assessment summary
-  - Input: goal + all action logs
-  - Output: narrative summary for performance review
-- [ ] Claude prompt template for self-assessment
-- [ ] Self-assessment view/modal
-- [ ] Edit/customize generated assessment
-- [ ] Save assessment versions
 
 ### Data Export (NOT STARTED ⏳)
 - [ ] Export goal summary as PDF

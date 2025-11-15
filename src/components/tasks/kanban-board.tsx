@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCorners } from '@dnd-kit/core';
 import { ArrowUp } from 'lucide-react';
 import TaskCard from './task-card';
@@ -13,7 +13,7 @@ type Task = {
   id: string;
   title: string;
   description?: string | null;
-  status: 'todo' | 'in_progress' | 'completed';
+  status: 'todo' | 'in_progress' | 'blocked' | 'completed';
   goal_id: string;
   created_at: string;
 };
@@ -29,11 +29,12 @@ type KanbanBoardProps = {
   goals: Goal[];
 };
 
-type Column = 'todo' | 'in_progress' | 'completed';
+type Column = 'todo' | 'in_progress' | 'blocked' | 'completed';
 
 const COLUMNS: { id: Column; label: string }[] = [
   { id: 'todo', label: 'To do' },
   { id: 'in_progress', label: 'In progress' },
+  { id: 'blocked', label: 'Blocked' },
   { id: 'completed', label: 'Done' },
 ];
 
@@ -49,10 +50,16 @@ export default function KanbanBoard({ initialTasks, goals }: KanbanBoardProps) {
   const [displayCounts, setDisplayCounts] = useState<{ [key in Column]: number }>({
     todo: TASKS_PER_PAGE,
     in_progress: TASKS_PER_PAGE,
+    blocked: TASKS_PER_PAGE,
     completed: TASKS_PER_PAGE,
   });
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Sync local state with prop changes (when router.refresh() is called)
+  useEffect(() => {
+    setTasks(initialTasks);
+  }, [initialTasks]);
 
   // Group tasks by status
   const tasksByStatus = COLUMNS.reduce((acc, column) => {
@@ -153,7 +160,7 @@ export default function KanbanBoard({ initialTasks, goals }: KanbanBoardProps) {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
           {COLUMNS.map((column) => (
             <div key={column.id} className="rounded-lg border border-gray-200 bg-gray-50 p-4">
               {/* Column Header */}

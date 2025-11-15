@@ -48,13 +48,15 @@ export default function ActionLogTimeline({ logs, onUpdate }: ActionLogTimelineP
   const handleUpdate = async (logId: string) => {
     setUpdating(true);
     try {
+      const hasBlocker = editForm.status === 'blocked' && editForm.blocker_description;
       const { error } = await supabase
         .from('action_logs')
         .update({
           title: editForm.title,
           description: editForm.description || null,
           status: editForm.status,
-          blocker_description: editForm.blocker_description || null,
+          blocker_description: hasBlocker ? editForm.blocker_description : null,
+          blocker_status: hasBlocker ? 'active' : null,
         })
         .eq('id', logId);
 
@@ -94,6 +96,52 @@ export default function ActionLogTimeline({ logs, onUpdate }: ActionLogTimelineP
       alert('An unexpected error occurred');
     } finally {
       setDeleting(null);
+    }
+  };
+
+  const handleResolveBlocker = async (logId: string) => {
+    try {
+      // Get the log to find task_id
+      const log = logs.find(l => l.id === logId);
+      if (!log) return;
+
+      // Update log: mark blocker as resolved and change status to on_track
+      const { error: updateError } = await supabase
+        .from('action_logs')
+        .update({
+          blocker_status: 'resolved',
+          status: 'on_track'
+        })
+        .eq('id', logId);
+
+      if (updateError) {
+        alert('Failed to resolve blocker: ' + updateError.message);
+        return;
+      }
+
+      // Check if there are any other active blockers for this task
+      const { data: activeBlockers } = await supabase
+        .from('action_logs')
+        .select('id')
+        .eq('task_id', log.task_id)
+        .eq('blocker_status', 'active');
+
+      // If no active blockers remain, update task status to in_progress
+      if (!activeBlockers || activeBlockers.length === 0) {
+        const { error: taskError } = await supabase
+          .from('tasks')
+          .update({ status: 'in_progress' })
+          .eq('id', log.task_id);
+
+        if (taskError) {
+          console.error('Error updating task status:', taskError);
+        }
+      }
+
+      onUpdate?.();
+    } catch (err) {
+      console.error('Error resolving blocker:', err);
+      alert('An unexpected error occurred');
     }
   };
   if (logs.length === 0) {
@@ -264,20 +312,51 @@ export default function ActionLogTimeline({ logs, onUpdate }: ActionLogTimelineP
               )}
 
               {log.blocker_description && (
-                <div className="mb-2 rounded-md bg-red-50 p-2 text-sm text-red-700">
-                  <strong>Blocker:</strong> {log.blocker_description}
+                <div className={`mb-2 rounded-md p-2 text-sm ${
+                  log.blocker_status === 'resolved'
+                    ? 'bg-gray-50 text-gray-600'
+                    : 'bg-red-50 text-red-700'
+                }`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <strong>Blocker:</strong>
+                        {log.blocker_status === 'resolved' && (
+                          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
+                            Resolved
+                          </span>
+                        )}
+                        {log.blocker_status === 'active' && (
+                          <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                            Active
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1">{log.blocker_description}</p>
+                    </div>
+                    {log.blocker_status === 'active' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleResolveBlocker(log.id)}
+                        className="shrink-0 text-xs"
+                      >
+                        Mark Resolved
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
 
               <div className="flex items-center justify-between">
                 <div className="text-xs text-gray-500">
-                  {new Date(log.created_at).toLocaleString('en-US', {
+                  {log.created_at ? new Date(log.created_at).toLocaleString('en-US', {
                     month: 'short',
                     day: 'numeric',
                     year: 'numeric',
                     hour: 'numeric',
                     minute: '2-digit',
-                  })}
+                  }) : 'Unknown date'}
                 </div>
                 <div className="flex gap-2">
                   <button

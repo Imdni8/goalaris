@@ -53,6 +53,7 @@ export default function ActionLogForm({ taskId, onSuccess, alwaysOpen = false }:
       const isFirstLog = !existingLogs || existingLogs.length === 0;
 
       // Insert the action log
+      const hasBlocker = formData.status === 'blocked' && formData.blocker_description;
       const { error } = await supabase.from('action_logs').insert([
         {
           task_id: taskId,
@@ -60,10 +61,8 @@ export default function ActionLogForm({ taskId, onSuccess, alwaysOpen = false }:
           title: formData.title,
           description: formData.description || null,
           status: formData.status,
-          blocker_description:
-            formData.status === 'blocked' && formData.blocker_description
-              ? formData.blocker_description
-              : null,
+          blocker_description: hasBlocker ? formData.blocker_description : null,
+          blocker_status: hasBlocker ? 'active' : null,
         },
       ]);
 
@@ -72,11 +71,20 @@ export default function ActionLogForm({ taskId, onSuccess, alwaysOpen = false }:
         return;
       }
 
-      // If this is the first log, update task status to 'in_progress'
-      if (isFirstLog) {
+      // Update task status based on the action log
+      let newTaskStatus = null;
+      if (hasBlocker) {
+        // If blocker is logged, mark task as blocked
+        newTaskStatus = 'blocked';
+      } else if (isFirstLog) {
+        // If this is the first log, update task status to 'in_progress'
+        newTaskStatus = 'in_progress';
+      }
+
+      if (newTaskStatus) {
         const { error: updateError } = await supabase
           .from('tasks')
-          .update({ status: 'in_progress' })
+          .update({ status: newTaskStatus })
           .eq('id', taskId);
 
         if (updateError) {

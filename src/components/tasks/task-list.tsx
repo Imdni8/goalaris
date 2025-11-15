@@ -147,7 +147,7 @@ export default function TaskList({ goalId, tasks: initialTasks }: TaskListProps)
 
               {task.due_date && (
                 <span className="text-xs text-gray-500">
-                  Due: {new Date(task.due_date).toLocaleDateString()}
+                  Due: {new Date(task.due_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                 </span>
               )}
 

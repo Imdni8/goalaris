@@ -9,20 +9,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { formatDistanceToNow } from 'date-fns';
 import ActionLogForm from './action-log-form';
+import ActionLogTimeline from './action-log-timeline';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Pencil } from 'lucide-react';
+import { Database } from '@/lib/db/types';
 
-interface ActionLog {
-  id: string;
-  title: string;
-  description: string | null;
-  status: 'on_track' | 'at_risk' | 'blocked';
-  blocker_description: string | null;
-  created_at: string;
-}
+type ActionLog = Database['public']['Tables']['action_logs']['Row'];
 
 interface TaskDetailModalProps {
   taskId: string | null;
@@ -307,7 +301,7 @@ export default function TaskDetailModal({
                   <div>
                     <span className="text-gray-600">Due: </span>
                     <span className="text-gray-900">
-                      {new Date(editForm.due_date).toLocaleDateString()}
+                      {new Date(editForm.due_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                     </span>
                   </div>
                 )}
@@ -334,76 +328,8 @@ export default function TaskDetailModal({
           {/* Timeline */}
           {loading ? (
             <p className="text-sm text-gray-500">Loading logs...</p>
-          ) : actionLogs.length === 0 ? (
-            <p className="text-sm text-gray-500">No progress logs yet. Add one above!</p>
           ) : (
-            <div className="space-y-4">
-              {actionLogs.map((log) => {
-                const getStatusColor = (status: string) => {
-                  switch (status) {
-                    case 'on_track':
-                      return 'border-green-400';
-                    case 'at_risk':
-                      return 'border-orange-400';
-                    case 'blocked':
-                      return 'border-red-400';
-                    default:
-                      return 'border-blue-400';
-                  }
-                };
-
-                const getStatusBadge = (status: string) => {
-                  switch (status) {
-                    case 'on_track':
-                      return 'bg-green-100 text-green-800';
-                    case 'at_risk':
-                      return 'bg-orange-100 text-orange-800';
-                    case 'blocked':
-                      return 'bg-red-100 text-red-800';
-                    default:
-                      return 'bg-gray-100 text-gray-800';
-                  }
-                };
-
-                const getStatusLabel = (status: string) => {
-                  switch (status) {
-                    case 'on_track':
-                      return 'On Track';
-                    case 'at_risk':
-                      return 'At Risk';
-                    case 'blocked':
-                      return 'Blocked';
-                    default:
-                      return status;
-                  }
-                };
-
-                return (
-                  <div key={log.id} className={`border-l-4 ${getStatusColor(log.status)} pl-4 py-2`}>
-                    <div className="flex items-start justify-between mb-1">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-gray-900">{log.title}</p>
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(log.status)}`}>
-                          {getStatusLabel(log.status)}
-                        </span>
-                      </div>
-                      <span className="text-xs text-gray-500">
-                        {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
-                      </span>
-                    </div>
-                    {log.description && (
-                      <p className="text-sm text-gray-600 mt-1">{log.description}</p>
-                    )}
-                    {log.blocker_description && (
-                      <p className="text-sm text-red-600 mt-1">
-                        <span className="font-medium">Blocker: </span>
-                        {log.blocker_description}
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            <ActionLogTimeline logs={actionLogs} onUpdate={handleLogAdded} />
           )}
         </div>
       </DialogContent>
