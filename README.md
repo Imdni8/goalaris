@@ -1,93 +1,42 @@
 # Goalaris
 
-AI-powered career goal tracking for enterprise professionals.
+AI-powered career goal tracking for working professionals.
 
-## Overview
+## What is Goalaris?
 
-Goalaris helps working professionals track progress on annual goals and prepare for self-assessments. With AI-powered coaching, employees can:
+Goalaris helps professionals track annual goals and prepare for performance reviews. Create SMART goals with AI assistance, break them into tasks, log progress, and manage blockers—all in one place.
 
-- Create SMART goals with AI guidance
-- Break goals into actionable tasks
-- Log progress and track achievements
-- Generate self-assessment summaries
+## Why Goalaris?
+
+Performance reviews can be stressful when you can't remember what you accomplished throughout the year. Goalaris solves this by helping you continuously track progress, making self-assessments effortless and ensuring you get proper recognition for your work.
+
+## Key Features
+
+- **AI-Powered Goal Creation** - Generate SMART goals from simple ideas using AI
+- **Task Breakdown** - Automatically break goals into actionable tasks
+- **Progress Tracking** - Log work, track blockers, and monitor achievement
+- **Kanban Board** - Visualize tasks across To Do, In Progress, Blocked, and Done columns
+- **Blocker Management** - Track and resolve blockers with auto-status updates
+- **Self-Assessment Ready** - Prepare for performance reviews with organized progress logs
 
 ## Tech Stack
 
-- **Frontend**: Next.js 14 (App Router) + TypeScript + Tailwind CSS
-- **Backend**: API Routes + Server Components
+- **Frontend**: Next.js 14 + React + TypeScript + Tailwind CSS
 - **Database**: Supabase (PostgreSQL)
-- **AI**: Anthropic Claude
-- **UI Components**: Shadcn/ui + Radix UI
+- **AI**: Google Cloud Vertex AI (Gemini)
+- **UI**: Shadcn/ui components
 
 ## Getting Started
 
-### Prerequisites
-
-- Node.js 18+ and npm
-- Supabase account (free tier available)
-- Anthropic API key
-
-### Installation
-
-1. Clone the repository and install dependencies:
+See [CLAUDE.md](./CLAUDE.md) for detailed setup instructions and development guidelines.
 
 ```bash
 npm install
-```
-
-2. Setup environment variables:
-
-```bash
-cp .env.example .env.local
-```
-
-Then update `.env.local` with:
-- Supabase URL and keys
-- Anthropic API key
-
-3. Setup Supabase locally:
-
-```bash
-# Install Supabase CLI if not already installed
-npm install -g supabase
-
-# Start local Supabase
 npx supabase start
-
-# Apply migrations
-npx supabase db push
-```
-
-4. Start the development server:
-
-```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the app.
-
-## Development Commands
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
-- `npm run type-check` - Run TypeScript type checking
-- `npm run db:reset` - Reset local database
-- `npm run db:types` - Generate TypeScript types from Supabase schema
-
-## Project Structure
-
-See [CLAUDE.md](./CLAUDE.md) for detailed architecture and development guidelines.
-
-## Contributing
-
-This project uses:
-- TypeScript for type safety
-- Prettier for code formatting
-- ESLint for code quality
-- Tailwind CSS for styling
-
 ## License
 
-ISC
+Copyright © 2025 Tousif. All rights reserved.
+This project and its contents are proprietary and confidential.
