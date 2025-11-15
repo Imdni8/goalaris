@@ -107,3 +107,33 @@ Create a professional summary (2-3 paragraphs) that:
 
 Make it professional, confident, and evidence-based.
 `;
+
+export const SMART_REFINEMENT_PROMPT = (
+  elementName: string,
+  currentValue: string,
+  userPrompt: string,
+  goalContext: { title: string; description?: string }
+) => `
+You are an expert career coach helping refine a SMART goal element.
+
+Goal Title: ${goalContext.title}
+${goalContext.description ? `Goal Description: ${goalContext.description}` : ''}
+
+SMART Element: ${elementName}
+Current Value: "${currentValue}"
+
+User wants to refine this with the following guidance:
+"${userPrompt}"
+
+Rewrite the ${elementName} element to incorporate the user's feedback while maintaining SMART goal best practices.
+
+Return ONLY the refined text for this specific element. Do not include JSON, markdown, or additional formatting - just the improved paragraph text.
+
+Guidelines:
+- Keep it concise but comprehensive
+- Maintain professional tone suitable for performance reviews
+- Make it specific and actionable
+- Ensure it aligns with the overall goal
+
+Return ONLY the refined text, nothing else.
+`;

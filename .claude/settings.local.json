@@ -9,7 +9,8 @@
       "Bash(curl:*)",
       "Bash(cat:*)",
       "WebSearch",
-      "WebFetch(domain:docs.cloud.google.com)"
+      "WebFetch(domain:docs.cloud.google.com)",
+      "Bash(npm run type-check:*)"
     ],
     "deny": [],
     "ask": []

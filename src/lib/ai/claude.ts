@@ -9,6 +9,7 @@ import {
   TASK_BREAKDOWN_PROMPT,
   COACHING_PROMPT,
   ASSESSMENT_SUMMARY_PROMPT,
+  SMART_REFINEMENT_PROMPT,
 } from './prompts';
 
 const MODEL = 'gemini-2.5-flash-lite';
@@ -112,4 +113,21 @@ export async function generateAssessmentSummary(
   }>
 ): Promise<string> {
   return await callGemini(ASSESSMENT_SUMMARY_PROMPT(goals));
+}
+
+/**
+ * Refine a SMART goal element based on user feedback
+ */
+export async function refineSmartElement(
+  elementName: string,
+  currentValue: string,
+  userPrompt: string,
+  goalContext: { title: string; description?: string }
+): Promise<string> {
+  const refinedText = await callGemini(
+    SMART_REFINEMENT_PROMPT(elementName, currentValue, userPrompt, goalContext)
+  );
+
+  // Return the refined text, trimming any extra whitespace
+  return refinedText.trim();
 }

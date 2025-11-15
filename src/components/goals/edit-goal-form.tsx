@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Database } from '@/lib/db/types';
+import RefinableSmartField from './refinable-smart-field';
 
 type Goal = Database['public']['Tables']['goals']['Row'];
 
@@ -109,53 +110,45 @@ export default function EditGoalForm({ goal }: { goal: Goal }) {
       <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
         <h3 className="mb-4 font-semibold text-gray-900">SMART Criteria</h3>
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Specific - What exactly will you accomplish?
-            </label>
-            <textarea
-              value={formData.specific}
-              onChange={(e) => handleChange('specific', e.target.value)}
-              rows={2}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
+          <RefinableSmartField
+            label="Specific - What exactly will you accomplish?"
+            value={formData.specific}
+            onChange={(value) => handleChange('specific', value)}
+            elementName="specific"
+            goalTitle={formData.title}
+            goalDescription={formData.description}
+            rows={2}
+          />
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Measurable - How will you measure success?
-            </label>
-            <textarea
-              value={formData.measurable}
-              onChange={(e) => handleChange('measurable', e.target.value)}
-              rows={2}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
+          <RefinableSmartField
+            label="Measurable - How will you measure success?"
+            value={formData.measurable}
+            onChange={(value) => handleChange('measurable', value)}
+            elementName="measurable"
+            goalTitle={formData.title}
+            goalDescription={formData.description}
+            rows={2}
+          />
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Achievable - Why is this goal realistic?
-            </label>
-            <textarea
-              value={formData.achievable}
-              onChange={(e) => handleChange('achievable', e.target.value)}
-              rows={2}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
+          <RefinableSmartField
+            label="Achievable - Why is this goal realistic?"
+            value={formData.achievable}
+            onChange={(value) => handleChange('achievable', value)}
+            elementName="achievable"
+            goalTitle={formData.title}
+            goalDescription={formData.description}
+            rows={2}
+          />
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Relevant - How does this align with your role/career?
-            </label>
-            <textarea
-              value={formData.relevant}
-              onChange={(e) => handleChange('relevant', e.target.value)}
-              rows={2}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
+          <RefinableSmartField
+            label="Relevant - How does this align with your role/career?"
+            value={formData.relevant}
+            onChange={(value) => handleChange('relevant', value)}
+            elementName="relevant"
+            goalTitle={formData.title}
+            goalDescription={formData.description}
+            rows={2}
+          />
 
           <div>
             <label className="block text-sm font-medium text-gray-700">

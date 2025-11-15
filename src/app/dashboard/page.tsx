@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import KanbanBoard from '@/components/tasks/kanban-board';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -17,6 +18,16 @@ export default async function DashboardPage() {
     .select('*')
     .eq('user_id', user?.id)
     .order('created_at', { ascending: false });
+
+  // Fetch all tasks from active goals
+  const activeGoalIds = goals?.filter((g) => g.status === 'active').map((g) => g.id) || [];
+  const { data: tasks } = activeGoalIds.length > 0
+    ? await supabase
+        .from('tasks')
+        .select('*')
+        .in('goal_id', activeGoalIds)
+        .order('created_at', { ascending: false })
+    : { data: [] };
 
   return (
     <div>
@@ -46,51 +57,13 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div className="mt-8">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-900">Your Goals</h2>
-          <Link href="/dashboard/goals">
-            <Button>Create Goal</Button>
-          </Link>
-        </div>
-
-        {goals && goals.length > 0 ? (
-          <div className="space-y-4">
-            {goals.map((goal) => (
-              <Link key={goal.id} href={`/dashboard/goals/${goal.id}`}>
-                <div className="card cursor-pointer transition-shadow hover:shadow-md">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">{goal.title}</h3>
-                      <p className="mt-1 text-sm text-gray-600">
-                        {goal.description || 'No description'}
-                      </p>
-                    </div>
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-medium ${
-                        goal.status === 'active'
-                          ? 'bg-blue-100 text-blue-800'
-                          : goal.status === 'completed'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {goal.status}
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <div className="card text-center">
-            <p className="text-gray-600">No goals yet. Create your first goal to get started!</p>
-            <Link href="/dashboard/goals">
-              <Button className="mt-4">Create Goal</Button>
-            </Link>
-          </div>
-        )}
-      </div>
+      {/* Kanban Board */}
+      {tasks && tasks.length > 0 && (
+        <KanbanBoard
+          initialTasks={tasks}
+          goals={goals?.filter((g) => g.status === 'active') || []}
+        />
+      )}
     </div>
   );
 }

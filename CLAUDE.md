@@ -26,8 +26,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Phase 1: Foundation** ✅ COMPLETE
 **Phase 2: Core CRUD** ✅ COMPLETE
-**Phase 3: AI Integration** ✅ COMPLETE (Switched from Anthropic API to Google Cloud Vertex AI for Claude access)
-**Phase 4: Progress Tracking** ⏳ IN PROGRESS
+**Phase 3: AI Integration** ✅ COMPLETE (Switched from Anthropic API to Google Cloud Vertex AI to access AI capability)
+**Phase 4: Progress Tracking & Dashboard** ⏳ IN PROGRESS (Kanban board, SMART refinement, action logs)
 **Phase 5: Insights & Export** ⏳ NOT STARTED
 **Phase 6: Optimization & Deploy** ⏳ NOT STARTED
 
@@ -78,6 +78,25 @@ Track all features to be built, ordered logically by dependencies. Check off as 
 - [x] Insert generated tasks into database with proper ordering
 - [x] Log AI interactions to database
 - [x] Error handling and user feedback
+
+### AI Features - SMART Refinement (COMPLETED ✅)
+- [x] API route for refining SMART elements `/api/ai/refine-smart-element`
+- [x] Claude prompt template for SMART element refinement
+- [x] Inline "Refine with AI" button for each SMART element
+- [x] Input field for additional refinement prompt
+- [x] Show refined version in preview before accepting
+- [x] Update goal with refined SMART element
+- [x] Log refinement interactions to `ai_interactions` table
+
+### Dashboard Features - Kanban Board (COMPLETED ✅)
+- [x] Create Kanban board component with columns (todo, in_progress, done)
+- [x] Query all tasks from active goals grouped by status
+- [x] Implement drag-and-drop status updates using @dnd-kit/core
+- [x] Display goal context badge on each task card
+- [x] Update task status on card drop with optimistic UI
+- [x] Add Kanban view to dashboard home screen
+- [x] Add pagination (10 tasks per column, load more button)
+- [x] Show task due dates and days until due
 
 ### Progress Tracking - Action Logs (IN PROGRESS ⏳)
 - [ ] Create action log form component
@@ -557,7 +576,7 @@ When deploying to production:
 
 ## Security Notes
 
-- Never expose ANTHROPIC_API_KEY in client code (use API routes only)
+- Never expose any API keys in client code (use API routes only)
 - RLS policies ensure data isolation
 - Validate all user input with Zod
 - Use Supabase auth for token generation
@@ -567,15 +586,12 @@ When deploying to production:
 
 **Phase 2:**
 - Real-time progress updates with Supabase Realtime
-- Collaborative goal sharing
-- Goal templates and marketplace
+- Adding notes and attachments (images for referencing as evidence in the PPM self-evaluation generation) to tasks
 - Integration with Slack/email notifications
 
 **Phase 3:**
 - Analytics dashboard with insights
-- Team/org features
 - Advanced coaching features
-- Mobile app (React Native/Expo)
 
 ## Useful Resources
 

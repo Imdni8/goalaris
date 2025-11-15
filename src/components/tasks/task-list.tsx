@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { Database } from '@/lib/db/types';
+import ActionLogForm from './action-log-form';
+import ActionLogTimeline from './action-log-timeline';
 
 type Task = Database['public']['Tables']['tasks']['Row'];
 
@@ -12,11 +14,15 @@ interface TaskListProps {
   tasks: Task[];
 }
 
+type ActionLog = Database['public']['Tables']['action_logs']['Row'];
+
 export default function TaskList({ goalId, tasks: initialTasks }: TaskListProps) {
   const router = useRouter();
   const supabase = createClient();
   const [tasks, setTasks] = useState(initialTasks);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [expandedTask, setExpandedTask] = useState<string | null>(null);
+  const [actionLogs, setActionLogs] = useState<Record<string, ActionLog[]>>({});
 
   async function updateTaskStatus(taskId: string, newStatus: string) {
     setUpdating(taskId);
@@ -66,6 +72,36 @@ export default function TaskList({ goalId, tasks: initialTasks }: TaskListProps)
       console.error(err);
     } finally {
       setUpdating(null);
+    }
+  }
+
+  async function fetchActionLogs(taskId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('action_logs')
+        .select('*')
+        .eq('task_id', taskId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Failed to fetch action logs:', error);
+        return;
+      }
+
+      setActionLogs((prev) => ({ ...prev, [taskId]: data || [] }));
+    } catch (err) {
+      console.error('Error fetching action logs:', err);
+    }
+  }
+
+  async function toggleExpand(taskId: string) {
+    if (expandedTask === taskId) {
+      setExpandedTask(null);
+    } else {
+      setExpandedTask(taskId);
+      if (!actionLogs[taskId]) {
+        await fetchActionLogs(taskId);
+      }
     }
   }
 
@@ -136,6 +172,13 @@ export default function TaskList({ goalId, tasks: initialTasks }: TaskListProps)
               {task.ai_generated && <span className="text-xs text-blue-600">✨ AI</span>}
 
               <button
+                onClick={() => toggleExpand(task.id)}
+                className="text-xs text-blue-600 hover:text-blue-800"
+              >
+                {expandedTask === task.id ? 'Hide Progress' : 'View Progress'}
+              </button>
+
+              <button
                 onClick={() => deleteTask(task.id)}
                 disabled={updating === task.id}
                 className="ml-auto text-xs text-red-600 hover:text-red-800 disabled:opacity-50"
@@ -143,6 +186,17 @@ export default function TaskList({ goalId, tasks: initialTasks }: TaskListProps)
                 Delete
               </button>
             </div>
+
+            {/* Action Logs Section */}
+            {expandedTask === task.id && (
+              <div className="mt-4 border-t border-gray-200 pt-4">
+                <ActionLogTimeline logs={actionLogs[task.id] || []} />
+                <ActionLogForm
+                  taskId={task.id}
+                  onSuccess={() => fetchActionLogs(task.id)}
+                />
+              </div>
+            )}
           </div>
         </div>
       ))}

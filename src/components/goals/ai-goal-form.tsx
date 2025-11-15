@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
+import RefinableSmartField from './refinable-smart-field';
 
 export default function AiGoalForm() {
   const router = useRouter();
@@ -170,53 +171,45 @@ export default function AiGoalForm() {
       <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
         <h3 className="mb-4 font-semibold text-gray-900">SMART Criteria</h3>
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Specific - What exactly will you accomplish?
-            </label>
-            <textarea
-              value={generatedGoal?.specific || ''}
-              onChange={(e) => setGeneratedGoal({ ...generatedGoal, specific: e.target.value })}
-              rows={2}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
+          <RefinableSmartField
+            label="Specific - What exactly will you accomplish?"
+            value={generatedGoal?.specific || ''}
+            onChange={(value) => setGeneratedGoal({ ...generatedGoal, specific: value })}
+            elementName="specific"
+            goalTitle={generatedGoal?.title || 'Untitled Goal'}
+            goalDescription={generatedGoal?.description}
+            rows={2}
+          />
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Measurable - How will you measure success?
-            </label>
-            <textarea
-              value={generatedGoal?.measurable || ''}
-              onChange={(e) => setGeneratedGoal({ ...generatedGoal, measurable: e.target.value })}
-              rows={2}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
+          <RefinableSmartField
+            label="Measurable - How will you measure success?"
+            value={generatedGoal?.measurable || ''}
+            onChange={(value) => setGeneratedGoal({ ...generatedGoal, measurable: value })}
+            elementName="measurable"
+            goalTitle={generatedGoal?.title || 'Untitled Goal'}
+            goalDescription={generatedGoal?.description}
+            rows={2}
+          />
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Achievable - Why is this goal realistic?
-            </label>
-            <textarea
-              value={generatedGoal?.achievable || ''}
-              onChange={(e) => setGeneratedGoal({ ...generatedGoal, achievable: e.target.value })}
-              rows={2}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
+          <RefinableSmartField
+            label="Achievable - Why is this goal realistic?"
+            value={generatedGoal?.achievable || ''}
+            onChange={(value) => setGeneratedGoal({ ...generatedGoal, achievable: value })}
+            elementName="achievable"
+            goalTitle={generatedGoal?.title || 'Untitled Goal'}
+            goalDescription={generatedGoal?.description}
+            rows={2}
+          />
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Relevant - How does this align with your role/career?
-            </label>
-            <textarea
-              value={generatedGoal?.relevant || ''}
-              onChange={(e) => setGeneratedGoal({ ...generatedGoal, relevant: e.target.value })}
-              rows={2}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
+          <RefinableSmartField
+            label="Relevant - How does this align with your role/career?"
+            value={generatedGoal?.relevant || ''}
+            onChange={(value) => setGeneratedGoal({ ...generatedGoal, relevant: value })}
+            elementName="relevant"
+            goalTitle={generatedGoal?.title || 'Untitled Goal'}
+            goalDescription={generatedGoal?.description}
+            rows={2}
+          />
 
           <div>
             <label className="block text-sm font-medium text-gray-700">
