@@ -18,8 +18,10 @@ export default function ActionLogForm({ taskId, onSuccess }: ActionLogFormProps)
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    action_description: '',
-    impact_notes: '',
+    title: '',
+    description: '',
+    status: 'on_track' as 'on_track' | 'at_risk' | 'blocked',
+    blocker_description: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,8 +42,10 @@ export default function ActionLogForm({ taskId, onSuccess }: ActionLogFormProps)
         {
           task_id: taskId,
           user_id: user.id,
-          action_description: formData.action_description,
-          impact_notes: formData.impact_notes || null,
+          title: formData.title,
+          description: formData.description || null,
+          status: formData.status,
+          blocker_description: formData.blocker_description || null,
         },
       ]);
 
@@ -52,8 +56,10 @@ export default function ActionLogForm({ taskId, onSuccess }: ActionLogFormProps)
 
       // Reset form
       setFormData({
-        action_description: '',
-        impact_notes: '',
+        title: '',
+        description: '',
+        status: 'on_track',
+        blocker_description: '',
       });
       setIsOpen(false);
       router.refresh();

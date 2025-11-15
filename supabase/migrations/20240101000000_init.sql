@@ -46,10 +46,10 @@ CREATE TABLE IF NOT EXISTS public.action_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   task_id UUID NOT NULL REFERENCES public.tasks(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  action_description TEXT NOT NULL,
-  impact_notes TEXT,
-  time_spent_minutes INT,
-  logged_at TIMESTAMPTZ DEFAULT NOW(),
+  title TEXT NOT NULL,
+  description TEXT,
+  status TEXT DEFAULT 'on_track' CHECK (status IN ('on_track', 'at_risk', 'blocked')),
+  blocker_description TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

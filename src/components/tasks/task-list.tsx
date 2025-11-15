@@ -190,7 +190,10 @@ export default function TaskList({ goalId, tasks: initialTasks }: TaskListProps)
             {/* Action Logs Section */}
             {expandedTask === task.id && (
               <div className="mt-4 border-t border-gray-200 pt-4">
-                <ActionLogTimeline logs={actionLogs[task.id] || []} />
+                <ActionLogTimeline
+                  logs={actionLogs[task.id] || []}
+                  onUpdate={() => fetchActionLogs(task.id)}
+                />
                 <ActionLogForm
                   taskId={task.id}
                   onSuccess={() => fetchActionLogs(task.id)}
