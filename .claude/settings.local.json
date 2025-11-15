@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --typescript --tailwind --app --eslint --import-alias='@/*' --no-git --skip-install)",
+      "Bash(npm install:*)",
+      "Bash(npm run dev)",
+      "Bash(gcloud ai models list:*)",
+      "Bash(gcloud auth login:*)",
+      "Bash(curl:*)",
+      "Bash(cat:*)",
+      "WebSearch",
+      "WebFetch(domain:docs.cloud.google.com)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

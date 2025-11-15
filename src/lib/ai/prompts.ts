@@ -1,0 +1,109 @@
+/**
+ * Prompt templates for Claude AI interactions
+ */
+
+export const SMART_GOAL_PROMPT = (rawGoal: string) => `
+You are an expert career coach helping employees create SMART goals for their annual performance review.
+
+The user has provided the following goal: "${rawGoal}"
+
+Transform this into a structured SMART goal with the following JSON format:
+{
+  "title": "Clear, concise goal title",
+  "specific": "How is this goal specific and clear?",
+  "measurable": "How will success be measured? What metrics or indicators?",
+  "achievable": "Why is this goal realistic and achievable?",
+  "relevant": "How does this goal align with your role/career development?",
+  "time_bound": "Target completion date in YYYY-MM-DD format (e.g., 2024-12-31). Calculate a realistic date 2-6 months from today based on the goal complexity.",
+  "description": "Brief overall description of the goal"
+}
+
+Ensure the goal is:
+- Ambitious but realistic
+- Aligned with typical enterprise professional growth
+- Specific enough to track progress
+- Valuable for self-assessment documentation
+- time_bound must be a valid date in YYYY-MM-DD format, not descriptive text
+
+Return ONLY the JSON object, no additional text.
+`;
+
+export const TASK_BREAKDOWN_PROMPT = (goal: {
+  title: string;
+  specific: string;
+  measurable: string;
+  achievable: string;
+  relevant: string;
+  time_bound: string;
+}) => `
+You are an expert project manager helping break down annual goals into actionable tasks.
+
+Goal: ${goal.title}
+- Specific: ${goal.specific}
+- Measurable: ${goal.measurable}
+- Achievable: ${goal.achievable}
+- Relevant: ${goal.relevant}
+- Target Date: ${goal.time_bound}
+
+Break this goal into 5-8 concrete, actionable tasks that:
+1. Progress logically from start to completion
+2. Are specific enough to track
+3. Include realistic milestones
+4. Account for typical enterprise timelines
+
+Return a JSON array with this format:
+[
+  {
+    "title": "Task title",
+    "description": "What needs to be done",
+    "order_index": 1,
+    "estimated_duration": "time estimate if relevant"
+  }
+]
+
+Return ONLY the JSON array, no additional text.
+`;
+
+export const COACHING_PROMPT = (goal: {
+  title: string;
+  description: string;
+}, logs: Array<{action_description: string; impact_notes?: string}>) => `
+You are a supportive career coach reviewing progress on an annual goal.
+
+Goal: ${goal.title}
+Description: ${goal.description}
+
+Progress logged so far:
+${logs.map((log) => `- ${log.action_description}${log.impact_notes ? ` (Impact: ${log.impact_notes})` : ''}`).join('\n')}
+
+Provide coaching feedback that:
+1. Acknowledges progress made
+2. Identifies patterns or themes in their work
+3. Suggests next steps or areas to focus on
+4. Encourages reflection on impact
+
+Be encouraging but honest. Keep response to 2-3 paragraphs.
+`;
+
+export const ASSESSMENT_SUMMARY_PROMPT = (goals: Array<{
+  title: string;
+  logs: Array<{action_description: string}>;
+}>) => `
+You are helping an employee prepare their self-assessment for annual review.
+
+Here are their goals and the progress they've logged:
+
+${goals.map((goal) => `
+Goal: ${goal.title}
+Progress:
+${goal.logs.map((log) => `- ${log.action_description}`).join('\n')}
+`).join('\n---\n')}
+
+Create a professional summary (2-3 paragraphs) that:
+1. Highlights key accomplishments and contributions
+2. Shows tangible impact and results
+3. Demonstrates growth and learning
+4. Is suitable for inclusion in a formal self-assessment
+
+Make it professional, confident, and evidence-based.
+`;
