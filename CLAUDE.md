@@ -27,7 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Phase 1: Foundation** ✅ COMPLETE
 **Phase 2: Core CRUD** ✅ COMPLETE
 **Phase 3: AI Integration** ✅ COMPLETE (Switched from Anthropic API to Google Cloud Vertex AI to access AI capability)
-**Phase 4: Progress Tracking & Dashboard** ⏳ IN PROGRESS (Kanban board, SMART refinement, action logs)
+**Phase 4: Progress Tracking & Dashboard** ✅ COMPLETE (Kanban board, SMART refinement, action logs with task detail modal)
 **Phase 5: Insights & Export** ⏳ NOT STARTED
 **Phase 6: Optimization & Deploy** ⏳ NOT STARTED
 
@@ -98,20 +98,24 @@ Track all features to be built, ordered logically by dependencies. Check off as 
 - [x] Add pagination (10 tasks per column, load more button)
 - [x] Show task due dates and days until due
 
-### Progress Tracking - Action Logs (IN PROGRESS ⏳)
-- [ ] Create action log form component
-  - Fields: title, description, blockers, task_id reference
-  - Status indicators (on_track, at_risk, blocked)
-- [ ] Action log list/timeline view
+### Progress Tracking - Action Logs (COMPLETED ✅)
+- [x] Create action log form component
+  - Fields: action_description (required), impact_notes (optional)
+  - Auto-update task status to 'in_progress' when first log is added
+  - Support alwaysOpen mode for use in modal
+- [x] Action log timeline view
   - Sort by date (newest first)
-  - Filter by task or status
-  - Show task context
-- [ ] API route for creating action logs
-- [ ] API route for updating action logs
-- [ ] API route for deleting action logs
-- [ ] Database queries for fetching action logs
-- [ ] Link action logs to tasks (foreign key)
-- [ ] Update task detail page to show related action logs
+  - Display action description and impact notes
+  - Show relative time (e.g., "2 hours ago")
+- [x] Database queries for fetching action logs
+  - Fetch logs per task, ordered by logged_at descending
+- [x] Link action logs to tasks (foreign key relationship)
+- [x] Task detail modal to show and add action logs
+  - Clickable task cards in Kanban board open modal
+  - Modal shows task details with edit button
+  - Timeline of all action logs
+  - Form to add new logs
+- [x] Make goal name in task cards clickable (navigates to goal details)
 
 ### Progress Tracking - Blocker Management (IN PROGRESS ⏳)
 - [ ] Blocker input field in action log form

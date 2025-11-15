@@ -9,13 +9,14 @@ import { useRouter } from 'next/navigation';
 type ActionLogFormProps = {
   taskId: string;
   onSuccess?: () => void;
+  alwaysOpen?: boolean;
 };
 
-export default function ActionLogForm({ taskId, onSuccess }: ActionLogFormProps) {
+export default function ActionLogForm({ taskId, onSuccess, alwaysOpen = false }: ActionLogFormProps) {
   const router = useRouter();
   const supabase = createClient();
 
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(alwaysOpen);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -38,6 +39,20 @@ export default function ActionLogForm({ taskId, onSuccess }: ActionLogFormProps)
         return;
       }
 
+      // Check if this is the first log for this task
+      const { data: existingLogs, error: fetchError } = await supabase
+        .from('action_logs')
+        .select('id')
+        .eq('task_id', taskId)
+        .limit(1);
+
+      if (fetchError) {
+        console.error('Error checking existing logs:', fetchError);
+      }
+
+      const isFirstLog = !existingLogs || existingLogs.length === 0;
+
+      // Insert the action log
       const { error } = await supabase.from('action_logs').insert([
         {
           task_id: taskId,
@@ -45,13 +60,29 @@ export default function ActionLogForm({ taskId, onSuccess }: ActionLogFormProps)
           title: formData.title,
           description: formData.description || null,
           status: formData.status,
-          blocker_description: formData.blocker_description || null,
+          blocker_description:
+            formData.status === 'blocked' && formData.blocker_description
+              ? formData.blocker_description
+              : null,
         },
       ]);
 
       if (error) {
         alert('Failed to add progress log: ' + error.message);
         return;
+      }
+
+      // If this is the first log, update task status to 'in_progress'
+      if (isFirstLog) {
+        const { error: updateError } = await supabase
+          .from('tasks')
+          .update({ status: 'in_progress' })
+          .eq('id', taskId);
+
+        if (updateError) {
+          console.error('Error updating task status:', updateError);
+          // Don't show error to user, log was still created successfully
+        }
       }
 
       // Reset form
@@ -61,7 +92,9 @@ export default function ActionLogForm({ taskId, onSuccess }: ActionLogFormProps)
         status: 'on_track',
         blocker_description: '',
       });
-      setIsOpen(false);
+      if (!alwaysOpen) {
+        setIsOpen(false);
+      }
       router.refresh();
       onSuccess?.();
     } catch (err) {
@@ -72,7 +105,7 @@ export default function ActionLogForm({ taskId, onSuccess }: ActionLogFormProps)
     }
   };
 
-  if (!isOpen) {
+  if (!isOpen && !alwaysOpen) {
     return (
       <Button
         variant="outline"
@@ -86,7 +119,7 @@ export default function ActionLogForm({ taskId, onSuccess }: ActionLogFormProps)
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-4 space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
+    <form onSubmit={handleSubmit} className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
       <div>
         <label className="block text-sm font-medium text-gray-700">
           Progress Title <span className="text-red-500">*</span>
@@ -167,14 +200,16 @@ export default function ActionLogForm({ taskId, onSuccess }: ActionLogFormProps)
         <Button type="submit" size="sm" disabled={loading}>
           {loading ? 'Adding...' : 'Add Log'}
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => setIsOpen(false)}
-        >
-          Cancel
-        </Button>
+        {!alwaysOpen && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsOpen(false)}
+          >
+            Cancel
+          </Button>
+        )}
       </div>
     </form>
   );

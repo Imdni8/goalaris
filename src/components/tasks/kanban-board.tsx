@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCorners } from '@dnd-kit/core';
 import { ArrowUp } from 'lucide-react';
 import TaskCard from './task-card';
+import TaskDetailModal from './task-detail-modal';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -50,6 +51,8 @@ export default function KanbanBoard({ initialTasks, goals }: KanbanBoardProps) {
     in_progress: TASKS_PER_PAGE,
     completed: TASKS_PER_PAGE,
   });
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Group tasks by status
   const tasksByStatus = COLUMNS.reduce((acc, column) => {
@@ -127,6 +130,17 @@ export default function KanbanBoard({ initialTasks, goals }: KanbanBoardProps) {
     }));
   };
 
+  const handleTaskClick = (task: Task) => {
+    setSelectedTask(task);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedTask(null);
+    router.refresh(); // Refresh to get updated data
+  };
+
   const activeTask = activeId ? tasks.find((t) => t.id === activeId) : null;
   const activeGoal = activeTask ? goals.find((g) => g.id === activeTask.goal_id) : null;
 
@@ -191,6 +205,7 @@ export default function KanbanBoard({ initialTasks, goals }: KanbanBoardProps) {
                         goalTitle={goal?.title || 'Unknown Goal'}
                         dueDate={goal?.time_bound}
                         daysUntilDue={daysUntilDue}
+                        onClick={() => handleTaskClick(task)}
                       />
                     </div>
                   );
@@ -225,6 +240,19 @@ export default function KanbanBoard({ initialTasks, goals }: KanbanBoardProps) {
           )}
         </DragOverlay>
       </DndContext>
+
+      {/* Task Detail Modal */}
+      {selectedTask && (
+        <TaskDetailModal
+          taskId={selectedTask.id}
+          taskTitle={selectedTask.title}
+          taskStatus={selectedTask.status}
+          taskDueDate={goals.find((g) => g.id === selectedTask.goal_id)?.time_bound || null}
+          goalId={selectedTask.goal_id}
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+        />
+      )}
     </div>
   );
 }

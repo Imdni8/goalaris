@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { Database } from '@/lib/db/types';
-import ActionLogForm from './action-log-form';
-import ActionLogTimeline from './action-log-timeline';
+import TaskDetailModal from './task-detail-modal';
 
 type Task = Database['public']['Tables']['tasks']['Row'];
 
@@ -14,15 +13,13 @@ interface TaskListProps {
   tasks: Task[];
 }
 
-type ActionLog = Database['public']['Tables']['action_logs']['Row'];
-
 export default function TaskList({ goalId, tasks: initialTasks }: TaskListProps) {
   const router = useRouter();
   const supabase = createClient();
   const [tasks, setTasks] = useState(initialTasks);
   const [updating, setUpdating] = useState<string | null>(null);
-  const [expandedTask, setExpandedTask] = useState<string | null>(null);
-  const [actionLogs, setActionLogs] = useState<Record<string, ActionLog[]>>({});
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   async function updateTaskStatus(taskId: string, newStatus: string) {
     setUpdating(taskId);
@@ -75,34 +72,15 @@ export default function TaskList({ goalId, tasks: initialTasks }: TaskListProps)
     }
   }
 
-  async function fetchActionLogs(taskId: string) {
-    try {
-      const { data, error } = await supabase
-        .from('action_logs')
-        .select('*')
-        .eq('task_id', taskId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Failed to fetch action logs:', error);
-        return;
-      }
-
-      setActionLogs((prev) => ({ ...prev, [taskId]: data || [] }));
-    } catch (err) {
-      console.error('Error fetching action logs:', err);
-    }
+  function handleTaskClick(task: Task) {
+    setSelectedTask(task);
+    setIsModalOpen(true);
   }
 
-  async function toggleExpand(taskId: string) {
-    if (expandedTask === taskId) {
-      setExpandedTask(null);
-    } else {
-      setExpandedTask(taskId);
-      if (!actionLogs[taskId]) {
-        await fetchActionLogs(taskId);
-      }
-    }
+  function handleCloseModal() {
+    setIsModalOpen(false);
+    setSelectedTask(null);
+    router.refresh();
   }
 
   const statusColors = {
@@ -132,7 +110,8 @@ export default function TaskList({ goalId, tasks: initialTasks }: TaskListProps)
       {tasks.map((task) => (
         <div
           key={task.id}
-          className="flex items-start gap-4 rounded-lg border border-gray-200 bg-white p-4 transition-shadow hover:shadow-sm"
+          className="flex items-start gap-4 rounded-lg border border-gray-200 bg-white p-4 transition-shadow hover:shadow-md cursor-pointer"
+          onClick={() => handleTaskClick(task)}
         >
           <div className="flex-1">
             <div className="mb-2 flex items-start justify-between">
@@ -152,7 +131,10 @@ export default function TaskList({ goalId, tasks: initialTasks }: TaskListProps)
             <div className="flex items-center gap-4">
               <select
                 value={task.status}
-                onChange={(e) => updateTaskStatus(task.id, e.target.value)}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  updateTaskStatus(task.id, e.target.value);
+                }}
                 disabled={updating === task.id}
                 className={`rounded-full px-3 py-1 text-xs font-medium ${statusColors[task.status as keyof typeof statusColors]} cursor-pointer border-0 focus:outline-none focus:ring-2 focus:ring-blue-500`}
               >
@@ -172,37 +154,32 @@ export default function TaskList({ goalId, tasks: initialTasks }: TaskListProps)
               {task.ai_generated && <span className="text-xs text-blue-600">✨ AI</span>}
 
               <button
-                onClick={() => toggleExpand(task.id)}
-                className="text-xs text-blue-600 hover:text-blue-800"
-              >
-                {expandedTask === task.id ? 'Hide Progress' : 'View Progress'}
-              </button>
-
-              <button
-                onClick={() => deleteTask(task.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteTask(task.id);
+                }}
                 disabled={updating === task.id}
                 className="ml-auto text-xs text-red-600 hover:text-red-800 disabled:opacity-50"
               >
                 Delete
               </button>
             </div>
-
-            {/* Action Logs Section */}
-            {expandedTask === task.id && (
-              <div className="mt-4 border-t border-gray-200 pt-4">
-                <ActionLogTimeline
-                  logs={actionLogs[task.id] || []}
-                  onUpdate={() => fetchActionLogs(task.id)}
-                />
-                <ActionLogForm
-                  taskId={task.id}
-                  onSuccess={() => fetchActionLogs(task.id)}
-                />
-              </div>
-            )}
           </div>
         </div>
       ))}
+
+      {/* Task Detail Modal */}
+      {selectedTask && (
+        <TaskDetailModal
+          taskId={selectedTask.id}
+          taskTitle={selectedTask.title}
+          taskStatus={selectedTask.status}
+          taskDueDate={selectedTask.due_date}
+          goalId={goalId}
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+        />
+      )}
     </div>
   );
 }
