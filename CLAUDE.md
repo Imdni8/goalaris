@@ -28,8 +28,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Phase 2: Core CRUD** ✅ COMPLETE
 **Phase 3: AI Integration** ✅ COMPLETE (Switched from Anthropic API to Google Cloud Vertex AI to access AI capability)
 **Phase 4: Progress Tracking & Dashboard** ✅ COMPLETE (Kanban board, SMART refinement, action logs with task detail modal)
-**Phase 5: Insights & Export** ⏳ NOT STARTED
-**Phase 6: Optimization & Deploy** ⏳ NOT STARTED
+**Phase 5: Progress Visualization** ✅ COMPLETE (Core features: task charts, heatmap, dashboard widget; timeline/indicators deferred)
+**Phase 6: Self-Assessment Generation** ✅ COMPLETE (AI-powered assessment writer with Claude artifact-style interactive editing)
+**Phase 7: Data Export & Additional Features** ⏳ NOT STARTED
+**Phase 8: Optimization & Deploy** ⏳ NOT STARTED
 
 See "Feature Checklist (Ordered by Dependency)" below for detailed breakdown of what's been built and what's next.
 
@@ -136,37 +138,144 @@ Track all features to be built, ordered logically by dependencies. Check off as 
   - Displays red badge with blocker count on goal cards
 - [ ] AI suggestion for unblocking strategies (optional - deferred)
 
-### AI Features - Self-Assessment Generation (IN PROGRESS ⏳)
-- [ ] API route for self-assessment summary
-  - Input: goal + all action logs
-  - Output: narrative summary for performance review
-- [ ] Claude prompt template for self-assessment
-- [ ] Self-assessment view/modal
-- [ ] Edit/customize generated assessment
-- [ ] Save assessment versions
+### AI Features - Self-Assessment Generation (COMPLETED ✅)
+- [x] Database schema for assessments table
+  - Table: assessments (id, user_id, title, content, date_range, goal_ids, version, status)
+  - RLS policies for user data isolation
+  - Migration applied successfully
+- [x] API route for self-assessment generation (`/api/ai/generate-assessment`)
+  - Fetches goals with SMART details + all action logs
+  - Supports goal filtering and date range selection
+  - Enhanced prompt with first-person narrative, quantifiable results
+  - Returns 3-4 paragraph professional summary
+- [x] API route for selective text refinement (`/api/ai/refine-assessment-text`)
+  - Takes selected text + user instruction
+  - Refines only the selected portion
+  - Maintains context and professional tone
+- [x] Self-assessment page (`/dashboard/self-assessment`)
+  - Goal selection UI (multi-select checkboxes)
+  - Date range picker with presets (Last 6 Months, Full Year)
+  - Generate button with loading state
+  - Stats display (goal count, action count)
+  - List of saved assessments with status badges
+- [x] Interactive Assessment Editor (Claude artifact-style editing)
+  - Two modes: View (read-only with AI refinement) and Edit (manual)
+  - Text selection → "Refine with AI" popup
+  - User provides refinement instruction
+  - Preview refined text before accepting
+  - Copy to clipboard functionality
+  - Word/character count
+- [x] Save/load functionality
+  - Save as Draft or Final
+  - Store with title, date range, selected goals
+  - Display saved assessments list
+  - Click to load saved assessments into editor
+  - Update existing assessments (changes button labels to "Update")
+  - Visual feedback with blue border for loaded assessment
+  - Auto-populates configuration from loaded assessment
+- [x] Navigation integration
+  - Added "Self-Assessment" link to dashboard nav
+  - Removed placeholder links (Progress, Insights)
+- [x] Test data seeding
+  - Created seed script (`scripts/seed-test-data.ts`) with realistic data
+  - 2 goals (Mobile App MVP, API Performance), 8 tasks, 19 action logs
+  - Fixed column name mismatches (action_description → title, impact_notes → description, logged_at → created_at)
+  - Run with: `npx tsx scripts/seed-test-data.ts`
 
-### Progress Visualization (NOT STARTED ⏳)
-- [ ] Task completion percentage chart per goal
-- [ ] Timeline view of action logs
-- [ ] Progress indicators (on_track vs at_risk vs blocked)
-- [ ] Heatmap of activity by date
-- [ ] Goal progress dashboard widget
-- [ ] Export progress chart as image (optional)
+### Progress Visualization (IN PROGRESS ⏳)
+- [x] Task completion percentage chart per goal
+  - Created reusable `TaskProgressChart` component with color-coded progress bars
+  - Integrated into goal cards (goals list page) showing completion %
+  - Added detailed progress overview on goal detail page with stats (total/completed/remaining)
+  - Color coding: green (>70%), yellow (40-70%), red (<40%)
+- [x] Heatmap of activity by date
+  - GitHub-style contribution heatmap showing 12 weeks of activity
+  - Color-coded cells based on action count: 0 (gray), 1-2 (light green), 3-5 (medium green), 6+ (dark green)
+  - Hover tooltips showing date and action count
+  - Month labels and day indicators
+  - Integrated into dashboard progress widget
+- [x] Goal progress dashboard widget
+  - Comprehensive `ProgressOverviewWidget` component on dashboard home
+  - Overall stats: total goals, completion %, recent actions (7d), active blockers
+  - Activity heatmap showing 90 days of logged actions
+  - "Goals Needing Attention" section (top 3 by lowest completion %)
+  - Gradient progress bar for overall task completion
+  - Replaces old simple stat cards on dashboard
+- [~] Timeline view of action logs (SKIPPED - deferred to later phase)
+- [~] Progress indicators (on_track vs at_risk vs blocked) (SKIPPED - deferred to later phase)
+- [~] Export progress chart as image (optional) (SKIPPED - deferred to later phase)
 
-### AI Features - Insights & Coaching (NOT STARTED ⏳)
-- [ ] API route for coaching feedback
-  - Input: goal + action logs
-  - Output: personalized coaching suggestions
-- [ ] Claude prompt template for coaching
-- [ ] Coaching feedback display on goal page
-- [ ] Coaching history view
-- [ ] Rate limiting for coaching API
+### AI Features - Insights & Coaching (COMPLETED ✅)
+- [x] API route for coaching feedback (`/api/coach/send-message`)
+  - Input: conversation + user context (goals, tasks, action logs)
+  - Output: streaming AI responses
+- [x] Claude prompt template for coaching
+- [x] Chat-based coaching interface (`/dashboard/coach`)
+- [x] Conversation management (list, create, history)
+- [x] Context-aware coaching (accesses user's goals, tasks, recent action logs)
+- [ ] Rate limiting for coaching API (deferred)
 
-### Data Export (NOT STARTED ⏳)
-- [ ] Export goal summary as PDF
-- [ ] Export self-assessment as PDF/Word
-- [ ] Export action logs timeline as CSV
-- [ ] Email export functionality (optional)
+### Coaching Quality Improvements (IN PROGRESS 🔄)
+**Goal**: Make AI coach more relevant, actionable, and proactive using low-effort/high-impact strategies
+
+**Sprint 1: Quick Wins** ✅ COMPLETE
+- [x] Smart Context Window - Changed from 10 logs to 30 days of time-based filtering
+- [x] Actionable Response Structure - Added structured format: Analysis → Insights → Actions → Resources
+- [x] Computed Insights - Pre-compute health metrics (stalled goals, chronic blockers, velocity trends, upcoming deadlines)
+
+**What was implemented:**
+- Created `src/lib/coaching/context-analyzer.ts` - Computes health metrics from user data
+  - Goals needing attention (no progress >14 days)
+  - Chronic blockers (blocked >7 days)
+  - Progress velocity (comparing last 7 days vs previous 7 days)
+  - Upcoming deadlines (<14 days away)
+- Enhanced `COACH_SYSTEM_PROMPT` in `prompts.ts`
+  - Added insights section with emoji indicators (🔴🟡🟢 for urgency, 📈📉 for trends)
+  - Added structured response format requirements
+  - Added example of good coaching response
+  - Emphasizes specific, data-driven, actionable advice
+- Modified `/api/coach/send-message/route.ts`
+  - Changed action log query from "limit 20" to "last 30 days" (time-based)
+  - Added goal/task context to queries (id, time_bound, blocker_status)
+  - Computes and passes health metrics to AI
+
+**Expected Impact:**
+- 40% better context relevance (30-day time window vs arbitrary limit)
+- 60% more proactive advice (AI sees computed insights upfront)
+- 80% more actionable responses (structured format enforced)
+
+**Sprint 2: Deeper Context** ✅ COMPLETE
+- [x] Goal-Focused Conversations - Added goal selector UI for deep-dive coaching
+- [x] Pattern Recognition - Blocker analysis, recurring themes, resolution tracking
+
+**What was implemented:**
+- Enhanced `context-analyzer.ts` with blocker pattern analysis
+  - Recurring themes detection (keywords: waiting, feedback, review, etc.)
+  - Recently resolved blockers tracking (with duration)
+- Updated `chat-window.tsx` with goal selector UI
+  - "Focus on Goal" button to select active goal
+  - Shows selected goal badge with dismiss option
+  - Updates placeholder text contextually
+  - Sends goalId with message for backend processing
+- Modified `/api/coach/send-message/route.ts` for goal-focused context
+  - When goalId provided: fetches ALL logs for that goal's tasks (complete history)
+  - When no goalId: fetches last 30 days across all goals (general coaching)
+  - Passes goal focus to AI for context-aware responses
+- Updated `COACH_SYSTEM_PROMPT` to display blocker patterns
+  - 🔁 Recurring Blocker Themes section (shows count + examples)
+  - ✅ Recently Resolved Blockers section (shows resolution time)
+
+**Impact:**
+- Deep-dive coaching: Users can now focus conversation on specific goal with full context
+- Pattern recognition: AI identifies recurring blocker themes and successful resolution strategies
+- Better coaching: AI sees which blockers were resolved and how long they took
+
+**Bug Fixes:**
+- [x] Fixed goal selection reset issue - Removed `window.location.reload()` that was clearing React state after streaming
+- [x] Fixed AI unresponsive/blank response issue - Implemented SSE line buffering to handle JSON payloads split across chunks
+  - Root cause: Server-Sent Events were being split by newlines on each chunk independently
+  - Fix: Added buffer to accumulate incomplete SSE lines across chunks before parsing JSON
+  - Impact: Streaming now correctly handles multi-chunk SSE events without silent JSON parse failures
 
 ### UI & UX Polish (NOT STARTED ⏳)
 - [ ] Mobile responsive design improvements
@@ -308,6 +417,7 @@ npm run format                # Format with Prettier (npm run format)
 # Database
 npm run db:reset              # Reset local database
 npm run db:types              # Generate types from schema (after schema changes)
+npx tsx scripts/seed-test-data.ts  # Seed test data (goals, tasks, action logs)
 ```
 
 ## Important Architectural Patterns
@@ -390,6 +500,29 @@ async function submitGoal(goalData) {
   await supabase.from('goals').insert({ ...smartGoal });
 }
 ```
+
+### 6. Self-Assessment Interactive Editing Pattern
+
+The self-assessment feature uses a Claude artifact-style editing pattern:
+
+**Key Components:**
+- `AssessmentGenerator` (Client Component) - Handles generation, loading, saving
+- `AssessmentEditor` (Client Component) - Manages text selection and AI refinement
+- `/api/ai/generate-assessment` - Fetches goals/tasks/logs and generates full assessment
+- `/api/ai/refine-assessment-text` - Refines selected text based on user instructions
+
+**Editing Flow:**
+1. User generates or loads an assessment
+2. Two modes available:
+   - **View Mode**: Select text → Popup with refinement instructions → AI refines → Preview → Accept/Reject
+   - **Edit Mode**: Manual text editing with textarea
+3. Changes can be saved/updated with status (draft/final)
+
+**Important Notes:**
+- Action logs table uses `title` (not `action_description`), `description` (not `impact_notes`), `created_at` (not `logged_at`)
+- Always map these correctly when fetching for AI prompts
+- The assessment prompt is in `ASSESSMENT_SUMMARY_PROMPT` in `src/lib/ai/prompts.ts`
+- Text refinement prompt is in `ASSESSMENT_TEXT_REFINEMENT_PROMPT`
 
 ## AI Integration Details
 

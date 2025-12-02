@@ -9,8 +9,8 @@ export default function DashboardNav() {
   const navItems = [
     { href: '/dashboard', label: 'Home' },
     { href: '/dashboard/goals', label: 'Goals' },
-    { href: '/dashboard/progress', label: 'Progress' },
-    { href: '/dashboard/insights', label: 'Insights' },
+    { href: '/dashboard/self-assessment', label: 'Self-Assessment' },
+    { href: '/dashboard/coach', label: 'Coach' },
   ];
 
   const isActive = (href: string) => {

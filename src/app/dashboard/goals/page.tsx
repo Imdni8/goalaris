@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import TaskProgressChart from '@/components/goals/task-progress-chart';
 
 export default async function GoalsPage() {
   const supabase = await createClient();
@@ -10,12 +11,12 @@ export default async function GoalsPage() {
 
   const { data: goals, error } = await supabase
     .from('goals')
-    .select('*, tasks(count)')
+    .select('*, tasks(id, status)')
     .eq('user_id', user?.id)
     .order('created_at', { ascending: false });
 
-  // Fetch active blocker counts for each goal
-  let goalsWithBlockerCount = goals || [];
+  // Process goals data with task stats and blocker counts
+  let goalsWithStats = goals || [];
 
   if (goals && goals.length > 0) {
     const goalIds = goals.map(g => g.id);
@@ -34,10 +35,18 @@ export default async function GoalsPage() {
       blockerCounts.set(task.goal_id, count + 1);
     });
 
-    goalsWithBlockerCount = goals.map((goal) => ({
-      ...goal,
-      activeBlockerCount: blockerCounts.get(goal.id) || 0,
-    }));
+    goalsWithStats = goals.map((goal) => {
+      const tasks = goal.tasks || [];
+      const totalTasks = tasks.length;
+      const completedTasks = tasks.filter((t: any) => t.status === 'completed').length;
+
+      return {
+        ...goal,
+        totalTasks,
+        completedTasks,
+        activeBlockerCount: blockerCounts.get(goal.id) || 0,
+      };
+    });
   }
 
   return (
@@ -63,9 +72,9 @@ export default async function GoalsPage() {
         </div>
       )}
 
-      {goalsWithBlockerCount && goalsWithBlockerCount.length > 0 ? (
+      {goalsWithStats && goalsWithStats.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {goalsWithBlockerCount.map((goal) => (
+          {goalsWithStats.map((goal) => (
             <Link key={goal.id} href={`/dashboard/goals/${goal.id}`}>
               <div className="card group cursor-pointer transition-all hover:shadow-lg">
                 <div className="mb-4 flex items-start justify-between">
@@ -95,8 +104,20 @@ export default async function GoalsPage() {
                   </div>
                 )}
 
+                {/* Task Progress Chart */}
+                {goal.totalTasks > 0 && (
+                  <div className="mb-3">
+                    <TaskProgressChart
+                      totalTasks={goal.totalTasks}
+                      completedTasks={goal.completedTasks}
+                      size="sm"
+                      showLabel={true}
+                    />
+                  </div>
+                )}
+
                 <div className="flex items-center gap-4 border-t border-gray-100 pt-3 text-xs text-gray-500">
-                  <span>{goal.tasks?.[0]?.count || 0} tasks</span>
+                  <span>{goal.totalTasks} task{goal.totalTasks !== 1 ? 's' : ''}</span>
                   {goal.activeBlockerCount > 0 && (
                     <span className="flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 font-medium text-red-700">
                       🚫 {goal.activeBlockerCount} blocker{goal.activeBlockerCount !== 1 ? 's' : ''}

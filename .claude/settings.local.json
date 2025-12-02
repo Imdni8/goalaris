@@ -12,7 +12,14 @@
       "WebFetch(domain:docs.cloud.google.com)",
       "Bash(npm run type-check:*)",
       "Bash(npx shadcn@latest add:*)",
-      "Bash(npm run db:types:*)"
+      "Bash(npm run db:types:*)",
+      "Bash(npx supabase db push)",
+      "Bash(npx supabase:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker cp:*)",
+      "SlashCommand(/nextf)",
+      "Bash(npx tsx:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []

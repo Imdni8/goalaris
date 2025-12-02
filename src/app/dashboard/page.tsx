@@ -2,21 +2,26 @@ import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import KanbanBoard from '@/components/tasks/kanban-board';
+import ProgressOverviewWidget from '@/components/dashboard/progress-overview-widget';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  if (!user) {
+    return null;
+  }
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('*')
-    .eq('id', user?.id)
+    .eq('id', user.id)
     .single();
 
   const { data: goals } = await supabase
     .from('goals')
     .select('*')
-    .eq('user_id', user?.id)
+    .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
   // Fetch all tasks from active goals
@@ -38,31 +43,17 @@ export default async function DashboardPage() {
         <p className="mt-2 text-gray-600">Track your annual goals and prepare for self-assessment</p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <div className="card">
-          <div className="mb-2 text-sm font-medium text-gray-600">Total Goals</div>
-          <div className="text-3xl font-bold text-gray-900">{goals?.length || 0}</div>
-        </div>
-        <div className="card">
-          <div className="mb-2 text-sm font-medium text-gray-600">Active Goals</div>
-          <div className="text-3xl font-bold text-blue-600">
-            {goals?.filter((g) => g.status === 'active').length || 0}
-          </div>
-        </div>
-        <div className="card">
-          <div className="mb-2 text-sm font-medium text-gray-600">Completed</div>
-          <div className="text-3xl font-bold text-green-600">
-            {goals?.filter((g) => g.status === 'completed').length || 0}
-          </div>
-        </div>
-      </div>
+      {/* Progress Overview Widget */}
+      <ProgressOverviewWidget userId={user.id} />
 
       {/* Kanban Board */}
       {tasks && tasks.length > 0 && (
-        <KanbanBoard
-          initialTasks={tasks}
-          goals={goals?.filter((g) => g.status === 'active') || []}
-        />
+        <div className="mt-8">
+          <KanbanBoard
+            initialTasks={tasks}
+            goals={goals?.filter((g) => g.status === 'active') || []}
+          />
+        </div>
       )}
     </div>
   );

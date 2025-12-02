@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import DeleteGoalButton from '@/components/goals/delete-goal-button';
 import TaskList from '@/components/tasks/task-list';
 import GenerateTasksButton from '@/components/tasks/generate-tasks-button';
+import TaskProgressChart from '@/components/goals/task-progress-chart';
 
 export default async function GoalDetailPage({ params }: { params: { id: string } }) {
   const supabase = await createClient();
@@ -28,6 +29,10 @@ export default async function GoalDetailPage({ params }: { params: { id: string 
     .select('*')
     .eq('goal_id', goal.id)
     .order('order_index', { ascending: true });
+
+  // Calculate task completion stats
+  const totalTasks = tasks?.length || 0;
+  const completedTasks = tasks?.filter(t => t.status === 'completed').length || 0;
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -57,6 +62,33 @@ export default async function GoalDetailPage({ params }: { params: { id: string 
           <DeleteGoalButton goalId={goal.id} />
         </div>
       </div>
+
+      {/* Progress Overview */}
+      {totalTasks > 0 && (
+        <div className="card mb-8">
+          <h2 className="mb-4 text-xl font-semibold text-gray-900">Progress Overview</h2>
+          <TaskProgressChart
+            totalTasks={totalTasks}
+            completedTasks={completedTasks}
+            size="lg"
+            showLabel={true}
+          />
+          <div className="mt-4 grid grid-cols-3 gap-4 border-t border-gray-100 pt-4">
+            <div>
+              <p className="text-sm text-gray-500">Total Tasks</p>
+              <p className="text-2xl font-semibold text-gray-900">{totalTasks}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Completed</p>
+              <p className="text-2xl font-semibold text-green-600">{completedTasks}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Remaining</p>
+              <p className="text-2xl font-semibold text-blue-600">{totalTasks - completedTasks}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* SMART Breakdown */}
       {(goal.specific || goal.measurable || goal.achievable || goal.relevant || goal.time_bound) && (
