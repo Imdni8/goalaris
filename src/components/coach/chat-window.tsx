@@ -33,13 +33,13 @@ export function ChatWindow({ conversationId, initialMessages }: ChatWindowProps)
   const [showGoalSelector, setShowGoalSelector] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Sync messages when conversation changes
+  // Sync messages when conversation changes (but not when initialMessages updates)
   useEffect(() => {
     setMessages(initialMessages);
     setInput('');
     setSelectedGoalId(null);
     setShowGoalSelector(false);
-  }, [conversationId, initialMessages]);
+  }, [conversationId]); // Only depend on conversationId, not initialMessages
 
   // Fetch user's goals
   useEffect(() => {

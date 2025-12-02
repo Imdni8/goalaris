@@ -19,7 +19,8 @@
       "Bash(docker cp:*)",
       "SlashCommand(/nextf)",
       "Bash(npx tsx:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "mcp__ide__getDiagnostics"
     ],
     "deny": [],
     "ask": []

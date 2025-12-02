@@ -24,14 +24,57 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Development Status
 
+### 🎉 BETA READY - All Core Features Complete!
+
 **Phase 1: Foundation** ✅ COMPLETE
 **Phase 2: Core CRUD** ✅ COMPLETE
-**Phase 3: AI Integration** ✅ COMPLETE (Switched from Anthropic API to Google Cloud Vertex AI to access AI capability)
-**Phase 4: Progress Tracking & Dashboard** ✅ COMPLETE (Kanban board, SMART refinement, action logs with task detail modal)
-**Phase 5: Progress Visualization** ✅ COMPLETE (Core features: task charts, heatmap, dashboard widget; timeline/indicators deferred)
-**Phase 6: Self-Assessment Generation** ✅ COMPLETE (AI-powered assessment writer with Claude artifact-style interactive editing)
-**Phase 7: Data Export & Additional Features** ⏳ NOT STARTED
-**Phase 8: Optimization & Deploy** ⏳ NOT STARTED
+**Phase 3: AI Integration** ✅ COMPLETE
+**Phase 4: Progress Tracking & Dashboard** ✅ COMPLETE
+**Phase 5: Progress Visualization** ✅ COMPLETE
+**Phase 6: Self-Assessment Generation** ✅ COMPLETE
+**Phase 7: AI Coaching System** ✅ COMPLETE
+**Phase 8: Data Export & Additional Features** ⏳ NOT STARTED
+**Phase 9: Optimization & Deploy** ⏳ NOT STARTED
+
+### What's Working (Ready for Beta Users):
+✅ **Goal Management**: Create, edit, delete goals with AI-powered SMART structuring
+✅ **Task Management**: AI generates task breakdowns; drag-and-drop Kanban board
+✅ **Progress Tracking**: Action logs with blocker management; completion tracking
+✅ **Progress Visualization**: Task completion charts, activity heatmap, dashboard overview
+✅ **Self-Assessment**: AI generates first-person review summaries with inline editing
+✅ **AI Career Coach**: Conversational coaching with context awareness, goal focus, pattern recognition
+✅ **All Critical Bugs Fixed**: Streaming responses work, delete buttons visible, context inference improved
+
+### What's Next (Post-Beta Feedback):
+⏳ Data export (CSV, PDF)
+⏳ Mobile responsive improvements
+⏳ Performance optimization
+⏳ Production deployment
+
+### Beta Onboarding Checklist:
+**Pre-Launch (Required):**
+- [ ] Deploy to production (Vercel)
+- [ ] Set up production Supabase instance
+- [ ] Configure environment variables in production
+- [ ] Set up Google Cloud Vertex AI access for production
+- [ ] Test complete user flow in production
+- [ ] Create onboarding documentation/guide for beta users
+- [ ] Set up basic analytics/monitoring (track user actions, errors)
+- [ ] Create feedback collection mechanism (form, email, or in-app)
+
+**Nice to Have:**
+- [ ] Create demo video showing key features
+- [ ] Write user guide with screenshots
+- [ ] Set up error tracking (Sentry or similar)
+- [ ] Add basic rate limiting to prevent abuse
+
+**Beta User Instructions to Provide:**
+1. Sign up at [production URL]
+2. Start by creating your first goal (try AI-assisted SMART goal)
+3. Let AI break down the goal into tasks
+4. Log some progress on tasks to see the dashboard come alive
+5. Try the AI Coach for guidance on your goals
+6. Generate a self-assessment when you have enough logged progress
 
 See "Feature Checklist (Ordered by Dependency)" below for detailed breakdown of what's been built and what's next.
 
@@ -215,7 +258,7 @@ Track all features to be built, ordered logically by dependencies. Check off as 
 - [x] Context-aware coaching (accesses user's goals, tasks, recent action logs)
 - [ ] Rate limiting for coaching API (deferred)
 
-### Coaching Quality Improvements (IN PROGRESS 🔄)
+### Coaching Quality Improvements (COMPLETED ✅)
 **Goal**: Make AI coach more relevant, actionable, and proactive using low-effort/high-impact strategies
 
 **Sprint 1: Quick Wins** ✅ COMPLETE
@@ -272,10 +315,47 @@ Track all features to be built, ordered logically by dependencies. Check off as 
 
 **Bug Fixes:**
 - [x] Fixed goal selection reset issue - Removed `window.location.reload()` that was clearing React state after streaming
-- [x] Fixed AI unresponsive/blank response issue - Implemented SSE line buffering to handle JSON payloads split across chunks
+- [x] Fixed AI unresponsive/blank response issue (Attempt 1) - Implemented SSE line buffering
   - Root cause: Server-Sent Events were being split by newlines on each chunk independently
   - Fix: Added buffer to accumulate incomplete SSE lines across chunks before parsing JSON
-  - Impact: Streaming now correctly handles multi-chunk SSE events without silent JSON parse failures
+- [x] Fixed AI unresponsive/blank response issue (Attempt 2) - Fixed TransformStream piping
+  - Root cause: `stream.pipeTo(writable)` was closing stream before client could read
+  - Fix: Used `stream.tee()` to split into two streams - one for client, one for DB save
+  - Impact: Client receives stream immediately without interference from DB operations
+- [x] Fixed AI unresponsive/blank response issue (Attempt 3) - Fixed buffer processing for complete responses
+  - Root cause: When Gemini sends complete response in single chunk, final SSE event wasn't processed
+  - Fix: Process remaining buffer before closing stream to handle single-chunk responses
+  - Impact: Both streaming (multiple chunks) and complete (single chunk) responses now work
+- [x] **CRITICAL: Fixed first prompt always failing to get response**
+  - Root cause: API was slicing off last message with `.slice(0, -1)`, removing the user's question!
+  - On first message: `[user_msg].slice(0,-1)` = `[]` (empty array) → Gemini had nothing to respond to
+  - Fix: Include ALL messages in conversation history - AI needs current user question
+  - File: `/api/coach/send-message/route.ts` line 153
+  - Impact: First prompts now work immediately, no need to send twice
+- [x] Fixed duplicate messages in chat - Removed `initialMessages` from useEffect dependencies
+  - Root cause: When messages saved to DB, `initialMessages` updated, triggering re-render and duplicating UI
+  - Fix: Only depend on `conversationId` in useEffect, not `initialMessages`
+- [x] Fixed streaming response content-type mismatch
+  - Root cause: API returned `Content-Type: text/event-stream` but sent plain text chunks
+  - Fix: Changed to `Content-Type: text/plain; charset=utf-8` to match actual stream format
+  - Impact: Client can now properly read streamed text chunks
+- [x] Improved conversation delete button visibility
+  - Changed from inline button to absolutely positioned overlay button
+  - Better hover detection with `group-hover` on parent div instead of Link
+  - Added `line-clamp-2` to show 2 lines of text instead of truncating
+  - Added `z-10` and tooltip for better UX
+- [x] Added conversation deletion feature
+  - API route: `/api/coach/conversations/[id]/delete` (DELETE with auth + ownership check)
+  - UI: Trash icon on hover in conversation list (absolute positioned, top-right)
+  - Includes confirmation dialog before delete
+- [x] Fixed Next.js hydration warning for date formatting
+  - Added `suppressHydrationWarning` to conversation date display
+  - Prevents client/server mismatch for `toLocaleDateString()`
+- [x] Improved coach context inference
+  - Updated `COACH_SYSTEM_PROMPT` to be smarter about inferring user intent
+  - AI now looks at goals/activity to infer which goal user is asking about
+  - Only asks clarifying questions when truly ambiguous
+  - Instruction: "Be helpful first, clarify second"
 
 ### UI & UX Polish (NOT STARTED ⏳)
 - [ ] Mobile responsive design improvements

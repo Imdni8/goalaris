@@ -222,6 +222,11 @@ export async function streamCoachResponse(
     })),
   ];
 
+  console.log('[streamCoachResponse] Calling Gemini API...');
+  console.log('[streamCoachResponse] URL:', url.replace(/key=.+/, 'key=***'));
+  console.log('[streamCoachResponse] Conversation history length:', conversationHistory.length);
+  console.log('[streamCoachResponse] Total contents array length:', contents.length);
+
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -236,16 +241,23 @@ export async function streamCoachResponse(
     }),
   });
 
+  console.log('[streamCoachResponse] Gemini API response status:', response.status);
+  console.log('[streamCoachResponse] Response headers:', Object.fromEntries(response.headers.entries()));
+
   if (!response.ok) {
     const errorText = await response.text();
+    console.error('[streamCoachResponse] Gemini API error response:', errorText);
     throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${errorText}`);
   }
 
   // Create a ReadableStream that parses Server-Sent Events
   const reader = response.body?.getReader();
   if (!reader) {
+    console.error('[streamCoachResponse] No response body from Gemini API!');
     throw new Error('No response body');
   }
+
+  console.log('[streamCoachResponse] Got reader from response.body, creating ReadableStream...');
 
   const decoder = new TextDecoder();
 
@@ -253,27 +265,60 @@ export async function streamCoachResponse(
     async start(controller) {
       try {
         let totalChunks = 0;
+        let totalTextChunks = 0;
         let buffer = ''; // Buffer for incomplete SSE lines
+
+        console.log('[StreamCoachResponse] Starting to read from Gemini stream...');
 
         while (true) {
           const { done, value } = await reader.read();
 
           if (done) {
-            console.log(`[StreamCoachResponse] Stream complete. Total chunks: ${totalChunks}`);
+            // Process any remaining buffer before closing
+            if (buffer.trim()) {
+              console.log(`[StreamCoachResponse] Stream done, processing remaining buffer: "${buffer.substring(0, 200)}..."`);
+
+              const lines = buffer.split('\n');
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  const jsonStr = line.slice(6);
+                  try {
+                    const data = JSON.parse(jsonStr);
+                    console.log('[StreamCoachResponse] [Final] Parsed SSE data:', JSON.stringify(data).substring(0, 200));
+
+                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (text) {
+                      totalTextChunks++;
+                      console.log(`[StreamCoachResponse] [Final] Text chunk #${totalTextChunks}: "${text.substring(0, 50)}..." (${text.length} chars)`);
+                      controller.enqueue(new TextEncoder().encode(text));
+                    }
+                  } catch (e) {
+                    console.error('[StreamCoachResponse] [Final] Error parsing remaining buffer:', e);
+                  }
+                }
+              }
+            }
+
+            console.log(`[StreamCoachResponse] Stream complete. Total raw chunks: ${totalChunks}, Total text chunks sent: ${totalTextChunks}`);
             controller.close();
             break;
           }
 
           // Decode the chunk and append to buffer
           const chunk = decoder.decode(value, { stream: true });
-          buffer += chunk;
           totalChunks++;
+
+          console.log(`[StreamCoachResponse] Raw chunk #${totalChunks} (${chunk.length} bytes): "${chunk.substring(0, 100)}..."`);
+
+          buffer += chunk;
 
           // Parse Server-Sent Events format
           const lines = buffer.split('\n');
 
           // Keep the last line in buffer (might be incomplete)
           buffer = lines.pop() || '';
+
+          console.log(`[StreamCoachResponse] Processing ${lines.length} complete lines`);
 
           for (const line of lines) {
             if (line.startsWith('data: ')) {
@@ -282,19 +327,26 @@ export async function streamCoachResponse(
               try {
                 const data = JSON.parse(jsonStr);
 
+                console.log('[StreamCoachResponse] Parsed SSE data:', JSON.stringify(data).substring(0, 200));
+
                 // Extract text from Gemini streaming response
                 const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
                 if (text) {
-                  console.log(`[StreamCoachResponse] Sending text chunk: ${text.substring(0, 50)}...`);
+                  totalTextChunks++;
+                  console.log(`[StreamCoachResponse] Text chunk #${totalTextChunks}: "${text.substring(0, 50)}..." (${text.length} chars)`);
                   // Send text chunk to client
                   controller.enqueue(new TextEncoder().encode(text));
+                } else {
+                  console.log('[StreamCoachResponse] No text in this SSE chunk, structure:', JSON.stringify(data));
                 }
               } catch (e) {
                 // Log parse errors with the problematic JSON
                 console.error('[StreamCoachResponse] Error parsing SSE chunk:', e);
-                console.error('[StreamCoachResponse] Problematic JSON:', jsonStr.substring(0, 100));
+                console.error('[StreamCoachResponse] Problematic JSON:', jsonStr.substring(0, 200));
               }
+            } else if (line.trim()) {
+              console.log(`[StreamCoachResponse] Non-data SSE line: "${line.substring(0, 100)}"`);
             }
           }
         }

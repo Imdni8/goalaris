@@ -48,34 +48,36 @@ export function ConversationListItem({ conversation, isActive }: ConversationLis
   };
 
   return (
-    <Link
-      href={`/dashboard/coach?conversation=${conversation.id}`}
-      className={`group block p-3 rounded-md transition-colors ${
+    <div
+      className={`group relative rounded-md transition-colors ${
         isActive
           ? 'bg-blue-50 border border-blue-200'
           : 'hover:bg-gray-100'
       }`}
     >
-      <div className="flex items-start gap-2">
-        <MessageCircle className="w-4 h-4 mt-0.5 text-gray-500 flex-shrink-0" />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900 truncate">
-            {conversation.title || 'New Conversation'}
-          </p>
-          <p className="text-xs text-gray-500 mt-0.5">
-            {new Date(conversation.updated_at).toLocaleDateString()}
-          </p>
+      <Link href={`/dashboard/coach?conversation=${conversation.id}`} className="block p-3 pr-10">
+        <div className="flex items-start gap-2">
+          <MessageCircle className="w-4 h-4 mt-1 text-gray-500 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-900 line-clamp-2 leading-tight mb-1">
+              {conversation.title || 'New Conversation'}
+            </p>
+            <p className="text-xs text-gray-500 suppressHydrationWarning">
+              {new Date(conversation.updated_at).toLocaleDateString()}
+            </p>
+          </div>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleDelete}
-          disabled={isDeleting}
-          className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-        >
-          <Trash2 className="w-3.5 h-3.5 text-red-500" />
-        </Button>
-      </div>
-    </Link>
+      </Link>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleDelete}
+        disabled={isDeleting}
+        className="absolute top-3 right-2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 z-10"
+        title="Delete conversation"
+      >
+        <Trash2 className="w-3.5 h-3.5 text-red-500" />
+      </Button>
+    </div>
   );
 }

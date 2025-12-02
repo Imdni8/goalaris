@@ -148,8 +148,9 @@ export async function POST(request: NextRequest) {
       recentActionLogs: actionLogs || [],
     };
 
-    // Build conversation history (exclude last message which is the new user message)
-    const conversationHistory = (messages || []).slice(0, -1);
+    // Build conversation history (include ALL messages, including the new user message)
+    // The AI needs the current user question to respond to!
+    const conversationHistory = messages || [];
 
     // Stream AI response with health metrics
     const stream = await streamCoachResponse(conversationHistory, userContext, healthMetrics);
@@ -213,9 +214,10 @@ export async function POST(request: NextRequest) {
     // Return the client stream immediately
     return new Response(streamForClient, {
       headers: {
-        'Content-Type': 'text/event-stream',
+        'Content-Type': 'text/plain; charset=utf-8',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
+        'Transfer-Encoding': 'chunked',
       },
     });
   } catch (error) {
