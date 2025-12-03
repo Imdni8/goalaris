@@ -24,7 +24,7 @@ export default function EditGoalForm({ goal }: { goal: Goal }) {
     achievable: goal.achievable || '',
     relevant: goal.relevant || '',
     time_bound: goal.time_bound || '',
-    status: goal.status,
+    status: goal.status || 'active',
   });
 
   async function handleSubmit(e: React.FormEvent) {
