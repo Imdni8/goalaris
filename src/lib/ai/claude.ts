@@ -108,12 +108,18 @@ export async function getCoachingFeedback(
 export async function generateAssessmentSummary(
   goals: Array<{
     title: string;
+    description?: string;
+    specific?: string;
+    measurable?: string;
     logs: Array<{
       action_description: string;
+      impact_notes?: string;
+      logged_at: string;
     }>;
-  }>
+  }>,
+  dateRange?: { start: string; end: string }
 ): Promise<string> {
-  return await callGemini(ASSESSMENT_SUMMARY_PROMPT(goals));
+  return await callGemini(ASSESSMENT_SUMMARY_PROMPT(goals, dateRange));
 }
 
 /**

@@ -15,13 +15,14 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Pencil } from 'lucide-react';
 import { Database } from '@/lib/db/types';
+import { safeString, ensureTaskStatus } from '@/lib/utils/null-safe';
 
 type ActionLog = Database['public']['Tables']['action_logs']['Row'];
 
 interface TaskDetailModalProps {
   taskId: string | null;
   taskTitle: string;
-  taskStatus: string;
+  taskStatus: string | null;
   taskDueDate: string | null;
   goalId: string;
   isOpen: boolean;
@@ -45,9 +46,9 @@ export default function TaskDetailModal({
   const [editForm, setEditForm] = useState({
     title: taskTitle,
     description: '',
-    status: taskStatus,
+    status: ensureTaskStatus(taskStatus),
     blocker_description: '',
-    due_date: taskDueDate || '',
+    due_date: safeString(taskDueDate),
   });
 
   useEffect(() => {
@@ -77,10 +78,10 @@ export default function TaskDetailModal({
       if (data) {
         setEditForm({
           title: data.title,
-          description: data.description || '',
-          status: data.status,
-          blocker_description: data.blocker_description || '',
-          due_date: data.due_date || '',
+          description: safeString(data.description),
+          status: ensureTaskStatus(data.status),
+          blocker_description: safeString(data.blocker_description),
+          due_date: safeString(data.due_date),
         });
       }
     } catch (err) {
@@ -233,7 +234,7 @@ export default function TaskDetailModal({
                 <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                 <select
                   value={editForm.status}
-                  onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                  onChange={(e) => setEditForm({ ...editForm, status: ensureTaskStatus(e.target.value) })}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                 >
                   <option value="todo">To Do</option>
