@@ -192,7 +192,7 @@ export default function ActionLogForm({ taskId, onSuccess, alwaysOpen = false }:
       {formData.status === 'blocked' && (
         <div>
           <label className="block text-sm font-medium text-gray-700">
-            What's blocking you?
+            What&apos;s blocking you?
           </label>
           <Textarea
             value={formData.blocker_description}

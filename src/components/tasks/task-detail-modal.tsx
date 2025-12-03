@@ -55,6 +55,7 @@ export default function TaskDetailModal({
       fetchActionLogs();
       fetchTaskDetails();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, taskId]);
 
   const fetchTaskDetails = async () => {

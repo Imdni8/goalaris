@@ -253,7 +253,7 @@ export default function AssessmentEditor({
       {/* Help Text */}
       {!isEditing && (
         <div className="text-sm text-gray-500 bg-blue-50 p-3 rounded-lg">
-          💡 <strong>Tip:</strong> Select any text to refine it with AI, or click "Edit Mode" to manually edit the assessment.
+          💡 <strong>Tip:</strong> Select any text to refine it with AI, or click &quot;Edit Mode&quot; to manually edit the assessment.
         </div>
       )}
     </div>

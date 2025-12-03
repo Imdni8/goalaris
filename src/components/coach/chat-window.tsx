@@ -39,6 +39,7 @@ export function ChatWindow({ conversationId, initialMessages }: ChatWindowProps)
     setInput('');
     setSelectedGoalId(null);
     setShowGoalSelector(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]); // Only depend on conversationId, not initialMessages
 
   // Fetch user's goals

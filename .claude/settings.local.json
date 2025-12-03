@@ -21,7 +21,8 @@
       "Bash(npx tsx:*)",
       "Bash(npx tsc:*)",
       "mcp__ide__getDiagnostics",
-      "Bash(export:*)"
+      "Bash(export:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
