@@ -34,7 +34,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Phase 6: Self-Assessment Generation** ✅ COMPLETE
 **Phase 7: AI Coaching System** ✅ COMPLETE
 **Phase 8: Data Export & Additional Features** ⏳ NOT STARTED
-**Phase 9: Optimization & Deploy** ⏳ NOT STARTED
+**Phase 9: Optimization & Deploy** ✅ COMPLETE
 
 ### What's Working (Ready for Beta Users):
 ✅ **Goal Management**: Create, edit, delete goals with AI-powered SMART structuring
@@ -43,20 +43,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ✅ **Progress Visualization**: Task completion charts, activity heatmap, dashboard overview
 ✅ **Self-Assessment**: AI generates first-person review summaries with inline editing
 ✅ **AI Career Coach**: Conversational coaching with context awareness, goal focus, pattern recognition
-✅ **All Critical Bugs Fixed**: Streaming responses work, delete buttons visible, context inference improved
+✅ **Production Deployment**: Live at Vercel with production Supabase + GCP Vertex AI
+✅ **All Critical Bugs Fixed**: TypeScript null errors, streaming responses, ESLint issues resolved
 
 ### What's Next (Post-Beta Feedback):
+⏳ Test production user flow end-to-end
+⏳ Create beta user onboarding guide
+⏳ Set up feedback collection mechanism
 ⏳ Data export (CSV, PDF)
 ⏳ Mobile responsive improvements
-⏳ Performance optimization
-⏳ Production deployment
 
 ### Beta Onboarding Checklist:
 **Pre-Launch (Required):**
-- [ ] Deploy to production (Vercel)
-- [ ] Set up production Supabase instance
-- [ ] Configure environment variables in production
-- [ ] Set up Google Cloud Vertex AI access for production
+- [x] Deploy to production (Vercel) ✅
+- [x] Set up production Supabase instance ✅
+- [x] Configure environment variables in production ✅
+- [x] Set up Google Cloud Vertex AI access for production ✅
+- [x] Fix all TypeScript null errors comprehensively ✅
 - [ ] Test complete user flow in production
 - [ ] Create onboarding documentation/guide for beta users
 - [ ] Set up basic analytics/monitoring (track user actions, errors)
@@ -725,6 +728,59 @@ Check [Vertex AI documentation](https://cloud.google.com/vertex-ai/docs/generati
 - Strict mode enabled in tsconfig.json
 - Generate and use Supabase types (not 'any')
 - Use interfaces for component props
+
+### Null Safety Guidelines
+
+**CRITICAL: All database Row types have nullable fields. Follow these rules:**
+
+1. **Use null-safe utility helpers** (`src/lib/utils/null-safe.ts`):
+   - `ensureTaskStatus(status)` - Converts `string | null` to valid task status with 'todo' fallback
+   - `ensureGoalStatus(status)` - Converts `string | null` to valid goal status with 'active' fallback
+   - `safeString(value)` - Converts `string | null` to empty string for inputs
+   - `safeSelect(value, default)` - Converts nullable to default value for selects
+
+2. **Never pass database Row types directly to component props expecting `string`**:
+   ```typescript
+   // ❌ BAD - Will fail in production build
+   <TaskDetailModal taskStatus={task.status} />
+
+   // ✅ GOOD - Component accepts string | null
+   <TaskDetailModal taskStatus={task.status} />
+
+   // Props definition accepts nullable
+   interface TaskDetailModalProps {
+     taskStatus: string | null;
+   }
+   ```
+
+3. **Always handle null in form state initialization**:
+   ```typescript
+   // ❌ BAD
+   const [formData, setFormData] = useState({
+     status: task.status,        // May be null
+     due_date: task.due_date,    // May be null
+   });
+
+   // ✅ GOOD
+   const [formData, setFormData] = useState({
+     status: ensureTaskStatus(task.status),  // Guaranteed valid status
+     due_date: safeString(task.due_date),    // Guaranteed string
+   });
+   ```
+
+4. **For select elements, use helpers or provide fallback**:
+   ```typescript
+   // ✅ Option 1: Use helper
+   <select value={ensureTaskStatus(task.status)}>
+
+   // ✅ Option 2: Manual fallback
+   <select value={task.status || 'todo'}>
+   ```
+
+5. **Run build locally before pushing**:
+   ```bash
+   npm run build  # Catches TypeScript null errors
+   ```
 
 ### Styling
 
