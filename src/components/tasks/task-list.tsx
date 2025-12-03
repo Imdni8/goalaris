@@ -130,13 +130,13 @@ export default function TaskList({ goalId, tasks: initialTasks }: TaskListProps)
 
             <div className="flex items-center gap-4">
               <select
-                value={task.status}
+                value={task.status || 'todo'}
                 onChange={(e) => {
                   e.stopPropagation();
                   updateTaskStatus(task.id, e.target.value);
                 }}
                 disabled={updating === task.id}
-                className={`rounded-full px-3 py-1 text-xs font-medium ${statusColors[task.status as keyof typeof statusColors]} cursor-pointer border-0 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                className={`rounded-full px-3 py-1 text-xs font-medium ${statusColors[(task.status || 'todo') as keyof typeof statusColors]} cursor-pointer border-0 focus:outline-none focus:ring-2 focus:ring-blue-500`}
               >
                 {statusOptions.map((option) => (
                   <option key={option.value} value={option.value}>

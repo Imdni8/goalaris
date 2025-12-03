@@ -22,7 +22,9 @@
       "Bash(npx tsc:*)",
       "mcp__ide__getDiagnostics",
       "Bash(export:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
