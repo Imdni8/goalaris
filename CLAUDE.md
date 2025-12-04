@@ -674,45 +674,46 @@ All tables have RLS enabled with policies:
 - Tasks are accessible if goal belongs to user
 - Middleware ensures auth token is passed
 
-## Google Cloud Vertex AI Setup
+## AI Integration Setup
 
-### Initial Setup (One-time)
+### Google Gemini API (Current Implementation)
 
-1. **Install Google Cloud SDK:**
-   ```bash
-   brew install google-cloud-sdk
-   ```
+The app uses **Google Gemini API directly** for all AI features (SMART goals, task breakdown, coaching, assessment).
 
-2. **Set up Application Default Credentials (ADC):**
-   ```bash
-   gcloud auth application-default login
-   ```
-   This opens a browser for authentication and saves credentials to `~/.config/gcloud/application_default_credentials.json`
+**Note**: Despite the filename `src/lib/ai/claude.ts`, the code uses Gemini API, not Anthropic Claude or Vertex AI.
 
-3. **Enable Vertex AI API** in [Google Cloud Console](https://console.cloud.google.com/apis/library/aiplatform.googleapis.com):
-   - Go to APIs & Services > Library
-   - Search for "Vertex AI API"
-   - Click "Enable" for your GCP project
+### Required Environment Variable
 
-4. **Add environment variables** to `.env.local`:
-   ```
-   GCP_PROJECT_ID=your-project-id
-   GCP_REGION=region-with-vertex-ai  # e.g., asia-south1, us-east5
-   ```
+Add to `.env.local`:
+```env
+GOOGLE_AI_API_KEY=your-api-key-here
+```
 
-### How It Works
+**Get API Key**:
+1. Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. Create API key
+3. Copy and paste into `.env.local`
 
-- The app uses `@anthropic-ai/vertex-sdk` for Claude API access via Google Cloud
-- Authentication happens via ADC (Application Default Credentials) - no API keys needed in `.env.local`
-- All Claude calls in `src/lib/ai/claude.ts` automatically use the authenticated Vertex AI client
-- Supports same Claude models as direct API with same function signatures
+### Production Deployment
 
-### Available Regions with Claude
+Add `GOOGLE_AI_API_KEY` to Vercel environment variables:
+1. Vercel Dashboard → Project → Settings → Environment Variables
+2. Add key for Production, Preview, Development environments
 
-Check [Vertex AI documentation](https://cloud.google.com/vertex-ai/docs/generative-ai/learn/models) for current Claude availability. Common regions:
-- `asia-south1` (Mumbai)
-- `us-east5` (New Jersey)
-- `us-central1` (Iowa)
+### API Details
+
+- **Endpoint**: `https://aiplatform.googleapis.com/v1/publishers/google/models`
+- **Model**: `gemini-2.5-flash-lite`
+- **Authentication**: API key (query parameter)
+- **No SDK dependency**: Direct `fetch()` calls
+
+### Legacy/Unused Variables
+
+These can be removed (not used in current implementation):
+```env
+GCP_PROJECT_ID=celtic-medium-478207-m0  # Not used
+GCP_REGION=us-central1                   # Not used
+```
 
 ## Code Quality Standards
 
@@ -883,3 +884,4 @@ When deploying to production:
 - [Supabase Docs](https://supabase.com/docs)
 - [Anthropic Claude Docs](https://docs.anthropic.com)
 - [Tailwind CSS](https://tailwindcss.com/docs)
+- while testing, I'll report bugs. i expect you to do RCA on them and propose fixes. These should be documented in the tsting folder.
