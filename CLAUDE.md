@@ -889,3 +889,4 @@ When deploying to production:
 - [Gemini API Docs](https://ai.google.dev/gemini-api/docs)
 - [Tailwind CSS](https://tailwindcss.com/docs)
 - while testing, I'll report bugs. i expect you to do RCA on them and propose fixes. These should be documented in the testing folder.
+- Don't commit without asking first

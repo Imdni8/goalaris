@@ -21,16 +21,16 @@ export default async function ProgressOverviewWidget({ userId }: ProgressOvervie
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
-  // Fetch action logs for activity heatmap (last 90 days)
-  const ninetyDaysAgo = new Date();
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+  // Fetch action logs for activity heatmap (full year)
+  const currentYear = new Date().getFullYear();
+  const yearStart = new Date(currentYear, 0, 1);
 
   const { data: actionLogs } = await supabase
     .from('action_logs')
-    .select('logged_at')
+    .select('created_at')
     .eq('user_id', userId)
-    .gte('logged_at', ninetyDaysAgo.toISOString())
-    .order('logged_at', { ascending: false });
+    .gte('created_at', yearStart.toISOString())
+    .order('created_at', { ascending: false });
 
   // Fetch active blockers
   const { data: blockerData } = await supabase
@@ -82,7 +82,7 @@ export default async function ProgressOverviewWidget({ userId }: ProgressOvervie
   // Process action logs for heatmap
   const activityByDate = new Map<string, number>();
   actionLogs?.forEach(log => {
-    const date = new Date(log.logged_at).toISOString().split('T')[0];
+    const date = new Date(log.created_at).toISOString().split('T')[0];
     activityByDate.set(date, (activityByDate.get(date) || 0) + 1);
   });
 
@@ -97,7 +97,7 @@ export default async function ProgressOverviewWidget({ userId }: ProgressOvervie
   // Calculate activity stats
   const totalActions = actionLogs?.length || 0;
   const last7DaysActions = actionLogs?.filter(log => {
-    const logDate = new Date(log.logged_at);
+    const logDate = new Date(log.created_at);
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     return logDate >= sevenDaysAgo;
@@ -148,9 +148,9 @@ export default async function ProgressOverviewWidget({ userId }: ProgressOvervie
       <div className="card">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Activity Overview</h2>
         <p className="text-sm text-gray-600 mb-4">
-          {totalActions} total actions logged in the last 90 days
+          {totalActions} total actions logged this year
         </p>
-        <ActivityHeatmap data={heatmapData} weeks={12} />
+        <ActivityHeatmap data={heatmapData} />
       </div>
 
       {/* Goals Needing Attention */}

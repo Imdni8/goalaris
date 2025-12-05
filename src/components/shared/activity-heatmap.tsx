@@ -2,7 +2,7 @@
 
 /**
  * Activity Heatmap Component
- * GitHub-style contribution graph showing user activity over time
+ * Year-view contribution graph showing user activity over 12 months
  */
 
 interface ActivityDay {
@@ -12,56 +12,69 @@ interface ActivityDay {
 
 interface ActivityHeatmapProps {
   data: ActivityDay[];
-  weeks?: number; // Number of weeks to show (default: 12)
 }
 
-export default function ActivityHeatmap({ data, weeks = 12 }: ActivityHeatmapProps) {
-  // Calculate the date range
+export default function ActivityHeatmap({ data }: ActivityHeatmapProps) {
   const today = new Date();
-  const startDate = new Date(today);
-  startDate.setDate(today.getDate() - (weeks * 7));
+  const currentYear = today.getFullYear();
 
-  // Generate all dates in the range
+  // Generate date map from data
   const dateMap = new Map<string, number>();
   data.forEach(d => {
     dateMap.set(d.date, d.count);
   });
 
-  // Build grid data (grouped by weeks)
-  const grid: { date: Date; count: number }[][] = [];
-  let currentWeek: { date: Date; count: number }[] = [];
+  // Build grid data by month (12 months × 7 days × ~4-5 weeks)
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const dayLabels = ['Mon', 'Wed', 'Fri'];
 
-  const currentDate = new Date(startDate);
+  // Create grid: each month contains weeks (columns) with days (rows)
+  const monthlyGrids = months.map((monthName, monthIndex) => {
+    const firstDay = new Date(currentYear, monthIndex, 1);
+    const lastDay = new Date(currentYear, monthIndex + 1, 0);
 
-  // Start from the first Sunday before or on startDate
-  const dayOfWeek = currentDate.getDay();
-  currentDate.setDate(currentDate.getDate() - dayOfWeek);
+    // Start from Monday of the week containing the 1st
+    const startDate = new Date(firstDay);
+    const dayOfWeek = startDate.getDay();
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    startDate.setDate(startDate.getDate() - daysToMonday);
 
-  while (currentDate <= today) {
-    const dateStr = currentDate.toISOString().split('T')[0];
-    const count = dateMap.get(dateStr) || 0;
+    // Build weeks for this month
+    const weeks: { date: Date; count: number; inMonth: boolean }[][] = [];
+    let currentWeek: { date: Date; count: number; inMonth: boolean }[] = [];
+    const currentDate = new Date(startDate);
 
-    currentWeek.push({
-      date: new Date(currentDate),
-      count,
-    });
+    // Continue until we've passed the last day of the month
+    while (currentDate <= lastDay || currentWeek.length > 0) {
+      if (currentWeek.length < 7) {
+        const dateStr = currentDate.toISOString().split('T')[0];
+        const count = dateMap.get(dateStr) || 0;
+        const inMonth = currentDate.getMonth() === monthIndex;
 
-    // If we've completed a week (Sunday to Saturday)
-    if (currentWeek.length === 7) {
-      grid.push(currentWeek);
-      currentWeek = [];
+        currentWeek.push({
+          date: new Date(currentDate),
+          count,
+          inMonth,
+        });
+
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      if (currentWeek.length === 7) {
+        weeks.push(currentWeek);
+        currentWeek = [];
+
+        // Stop if we've passed the last day
+        if (currentDate > lastDay) break;
+      }
     }
 
-    currentDate.setDate(currentDate.getDate() + 1);
-  }
-
-  // Push remaining days if any
-  if (currentWeek.length > 0) {
-    grid.push(currentWeek);
-  }
+    return { monthName, weeks };
+  });
 
   // Get color based on activity count
-  const getColor = (count: number): string => {
+  const getColor = (count: number, inMonth: boolean, isFuture: boolean): string => {
+    if (isFuture || !inMonth) return 'bg-gray-50';
     if (count === 0) return 'bg-gray-100';
     if (count <= 2) return 'bg-green-200';
     if (count <= 5) return 'bg-green-400';
@@ -77,100 +90,53 @@ export default function ActivityHeatmap({ data, weeks = 12 }: ActivityHeatmapPro
     });
   };
 
-  // Get month labels for header
-  const getMonthLabels = (): { month: string; weekIndex: number }[] => {
-    const labels: { month: string; weekIndex: number }[] = [];
-    let lastMonth = -1;
-
-    grid.forEach((week, weekIndex) => {
-      const firstDay = week[0];
-      if (firstDay) {
-        const month = firstDay.date.getMonth();
-        if (month !== lastMonth) {
-          labels.push({
-            month: firstDay.date.toLocaleDateString('en-US', { month: 'short' }),
-            weekIndex,
-          });
-          lastMonth = month;
-        }
-      }
-    });
-
-    return labels;
-  };
-
-  const monthLabels = getMonthLabels();
-  const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
   return (
-    <div className="w-full overflow-x-auto">
+    <div className="w-full overflow-x-auto pb-4">
       <div className="inline-block min-w-full">
-        {/* Month labels */}
-        <div className="flex mb-2">
-          <div className="w-10" /> {/* Spacer for day labels */}
-          <div className="flex-1 flex gap-[3px] relative" style={{ minWidth: `${grid.length * 15}px` }}>
-            {monthLabels.map((label, idx) => (
-              <div
-                key={idx}
-                className="absolute text-xs text-gray-600 font-medium"
-                style={{ left: `${label.weekIndex * 15}px` }}
-              >
-                {label.month}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Heatmap grid */}
-        <div className="flex gap-[3px] mt-6">
-          {/* Day labels */}
-          <div className="flex flex-col gap-[3px]">
-            {dayLabels.map((day, idx) => (
-              <div key={day} className="w-10 h-[11px] flex items-center">
-                {idx % 2 === 1 && (
-                  <span className="text-xs text-gray-500">{day.slice(0, 1)}</span>
-                )}
-              </div>
+        {/* Heatmap grid organized by months */}
+        <div className="flex gap-3">
+          {/* Day labels column */}
+          <div className="flex flex-col justify-around text-xs text-gray-500 h-[85px] mr-1">
+            {dayLabels.map((day) => (
+              <div key={day}>{day}</div>
             ))}
           </div>
 
-          {/* Grid cells */}
-          <div className="flex gap-[3px]">
-            {grid.map((week, weekIdx) => (
-              <div key={weekIdx} className="flex flex-col gap-[3px]">
-                {week.map((day, dayIdx) => {
-                  const isToday = day.date.toDateString() === today.toDateString();
-                  const isFuture = day.date > today;
-
-                  return (
-                    <div
-                      key={dayIdx}
-                      className={`
-                        w-[11px] h-[11px] rounded-sm
-                        ${isFuture ? 'bg-transparent' : getColor(day.count)}
-                        ${isToday ? 'ring-2 ring-blue-500 ring-offset-1' : ''}
-                        hover:ring-2 hover:ring-gray-400 cursor-pointer
-                        transition-all duration-150
-                      `}
-                      title={`${formatDate(day.date)}: ${day.count} ${day.count === 1 ? 'action' : 'actions'}`}
-                    />
-                  );
-                })}
+          {/* Month columns with headers */}
+          {monthlyGrids.map((monthGrid, monthIdx) => (
+            <div key={monthIdx} className="flex flex-col">
+              {/* Month header */}
+              <div className="text-xs text-gray-600 font-medium text-left mb-2 h-5">
+                {monthGrid.monthName}
               </div>
-            ))}
-          </div>
-        </div>
 
-        {/* Legend */}
-        <div className="flex items-center gap-2 mt-4 text-xs text-gray-600">
-          <span>Less</span>
-          <div className="flex gap-[3px]">
-            <div className="w-[11px] h-[11px] bg-gray-100 rounded-sm" />
-            <div className="w-[11px] h-[11px] bg-green-200 rounded-sm" />
-            <div className="w-[11px] h-[11px] bg-green-400 rounded-sm" />
-            <div className="w-[11px] h-[11px] bg-green-600 rounded-sm" />
-          </div>
-          <span>More</span>
+              {/* Week columns for this month */}
+              <div className="flex gap-[3px]">
+                {monthGrid.weeks.map((week, weekIdx) => (
+                  <div key={weekIdx} className="flex flex-col gap-[3px]">
+                    {week.map((day, dayIdx) => {
+                      const isToday = day.date.toDateString() === today.toDateString();
+                      const isFuture = day.date > today;
+
+                      return (
+                        <div
+                          key={dayIdx}
+                          className={`
+                            w-[10px] h-[10px] rounded-sm
+                            ${getColor(day.count, day.inMonth, isFuture)}
+                            ${isToday ? 'ring-2 ring-blue-500' : ''}
+                            hover:ring-2 hover:ring-gray-400 cursor-pointer
+                            transition-all duration-150
+                          `}
+                          title={`${formatDate(day.date)}: ${day.count} ${day.count === 1 ? 'action' : 'actions'}`}
+                        />
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
