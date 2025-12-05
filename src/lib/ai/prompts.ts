@@ -22,7 +22,7 @@ Transform this into a structured SMART goal with the following JSON format:
   "measurable": "How will success be measured? List 2-4 specific, quantifiable KPIs as an ordered list (e.g., '1. Achieve X metric\n2. Complete Y deliverables\n3. Reach Z milestone')",
   "achievable": "Why is this goal realistic and achievable?",
   "relevant": "How does this goal align with your role/career development?",
-  "time_bound": "Target completion date in YYYY-MM-DD format. MUST be between ${currentDate.toISOString().split('T')[0]} and ${futureDate.toISOString().split('T')[0]}. Calculate a realistic date 2-6 months from TODAY (not from 2024!) based on the goal complexity.",
+  "time_bound": "Target completion date in YYYY-MM-DD format. MUST be between ${currentDate.toISOString().split('T')[0]} and ${futureDate.toISOString().split('T')[0]}. Calculate a realistic date 2-6 months from today based on the goal complexity.",
   "description": "Brief overall description of the goal"
 }
 

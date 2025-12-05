@@ -37,11 +37,15 @@ export async function POST(request: NextRequest) {
       smartGoal = await generateSmartGoal(rawGoalText);
       console.log('[generate-goal] Successfully generated SMART goal:', JSON.stringify(smartGoal).substring(0, 200));
     } catch (aiError) {
-      console.error('[generate-goal] AI generation error:', aiError);
+      console.error('[generate-goal] AI generation error - Full error object:', aiError);
+      console.error('[generate-goal] Error name:', aiError instanceof Error ? aiError.name : 'unknown');
+      console.error('[generate-goal] Error message:', aiError instanceof Error ? aiError.message : 'unknown');
+      console.error('[generate-goal] Error stack:', aiError instanceof Error ? aiError.stack : 'unknown');
+
+      // Return the actual error message to help debug
       return NextResponse.json(
         {
-          error: 'AI failed to generate goal. The AI service may be unavailable or experiencing issues. Please try again in a moment.',
-          details: aiError instanceof Error ? aiError.message : 'Unknown AI error'
+          error: aiError instanceof Error ? aiError.message : 'Failed to generate SMART goal. Please try again.'
         },
         { status: 500 }
       );
