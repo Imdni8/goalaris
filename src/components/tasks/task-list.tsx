@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { Database } from '@/lib/db/types';
@@ -20,6 +20,11 @@ export default function TaskList({ goalId, tasks: initialTasks }: TaskListProps)
   const [updating, setUpdating] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Sync local state when props change (important for AI task generation)
+  useEffect(() => {
+    setTasks(initialTasks);
+  }, [initialTasks]);
 
   async function updateTaskStatus(taskId: string, newStatus: string) {
     setUpdating(taskId);

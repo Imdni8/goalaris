@@ -106,14 +106,14 @@ export default function ActivityHeatmap({ data, weeks = 12 }: ActivityHeatmapPro
     <div className="w-full overflow-x-auto">
       <div className="inline-block min-w-full">
         {/* Month labels */}
-        <div className="flex mb-1">
-          <div className="w-8" /> {/* Spacer for day labels */}
-          <div className="flex-1 flex gap-1 relative" style={{ minWidth: `${grid.length * 14}px` }}>
+        <div className="flex mb-2">
+          <div className="w-10" /> {/* Spacer for day labels */}
+          <div className="flex-1 flex gap-[3px] relative" style={{ minWidth: `${grid.length * 15}px` }}>
             {monthLabels.map((label, idx) => (
               <div
                 key={idx}
                 className="absolute text-xs text-gray-600 font-medium"
-                style={{ left: `${label.weekIndex * 14}px` }}
+                style={{ left: `${label.weekIndex * 15}px` }}
               >
                 {label.month}
               </div>
@@ -122,11 +122,11 @@ export default function ActivityHeatmap({ data, weeks = 12 }: ActivityHeatmapPro
         </div>
 
         {/* Heatmap grid */}
-        <div className="flex gap-1 mt-6">
+        <div className="flex gap-[3px] mt-6">
           {/* Day labels */}
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-[3px]">
             {dayLabels.map((day, idx) => (
-              <div key={day} className="w-8 h-3 flex items-center">
+              <div key={day} className="w-10 h-[11px] flex items-center">
                 {idx % 2 === 1 && (
                   <span className="text-xs text-gray-500">{day.slice(0, 1)}</span>
                 )}
@@ -135,9 +135,9 @@ export default function ActivityHeatmap({ data, weeks = 12 }: ActivityHeatmapPro
           </div>
 
           {/* Grid cells */}
-          <div className="flex gap-1">
+          <div className="flex gap-[3px]">
             {grid.map((week, weekIdx) => (
-              <div key={weekIdx} className="flex flex-col gap-1">
+              <div key={weekIdx} className="flex flex-col gap-[3px]">
                 {week.map((day, dayIdx) => {
                   const isToday = day.date.toDateString() === today.toDateString();
                   const isFuture = day.date > today;
@@ -146,7 +146,7 @@ export default function ActivityHeatmap({ data, weeks = 12 }: ActivityHeatmapPro
                     <div
                       key={dayIdx}
                       className={`
-                        w-3 h-3 rounded-sm
+                        w-[11px] h-[11px] rounded-sm
                         ${isFuture ? 'bg-transparent' : getColor(day.count)}
                         ${isToday ? 'ring-2 ring-blue-500 ring-offset-1' : ''}
                         hover:ring-2 hover:ring-gray-400 cursor-pointer
@@ -164,11 +164,11 @@ export default function ActivityHeatmap({ data, weeks = 12 }: ActivityHeatmapPro
         {/* Legend */}
         <div className="flex items-center gap-2 mt-4 text-xs text-gray-600">
           <span>Less</span>
-          <div className="flex gap-1">
-            <div className="w-3 h-3 bg-gray-100 rounded-sm" />
-            <div className="w-3 h-3 bg-green-200 rounded-sm" />
-            <div className="w-3 h-3 bg-green-400 rounded-sm" />
-            <div className="w-3 h-3 bg-green-600 rounded-sm" />
+          <div className="flex gap-[3px]">
+            <div className="w-[11px] h-[11px] bg-gray-100 rounded-sm" />
+            <div className="w-[11px] h-[11px] bg-green-200 rounded-sm" />
+            <div className="w-[11px] h-[11px] bg-green-400 rounded-sm" />
+            <div className="w-[11px] h-[11px] bg-green-600 rounded-sm" />
           </div>
           <span>More</span>
         </div>
