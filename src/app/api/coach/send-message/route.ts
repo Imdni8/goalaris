@@ -57,6 +57,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Auto-generate conversation title from first user message
+    if (!conversation.title) {
+      // Create a concise title (first 50 chars or until first newline/question mark)
+      let title = message.trim().split('\n')[0]; // Take first line
+      title = title.split('?')[0]; // Take up to first question mark
+      title = title.length > 50 ? title.substring(0, 47) + '...' : title;
+
+      await supabase
+        .from('conversations')
+        .update({ title })
+        .eq('id', conversationId);
+
+      console.log('[send-message] Auto-generated conversation title:', title);
+    }
+
     // Fetch conversation history (excluding the message we just added)
     const { data: messages, error: msgError } = await supabase
       .from('messages')

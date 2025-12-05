@@ -19,25 +19,59 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid input: rawGoalText is required' }, { status: 400 });
     }
 
-    // Generate SMART goal using Claude
-    const smartGoal = await generateSmartGoal(rawGoalText);
+    // Check API key availability
+    if (!process.env.GOOGLE_AI_API_KEY) {
+      console.error('[generate-goal] GOOGLE_AI_API_KEY not set in environment');
+      return NextResponse.json(
+        { error: 'AI service not configured. Please contact support.' },
+        { status: 500 }
+      );
+    }
+
+    console.log('[generate-goal] Starting goal generation for user:', user.id);
+    console.log('[generate-goal] Raw goal text length:', rawGoalText.length);
+
+    // Generate SMART goal using Gemini
+    let smartGoal;
+    try {
+      smartGoal = await generateSmartGoal(rawGoalText);
+      console.log('[generate-goal] Successfully generated SMART goal:', JSON.stringify(smartGoal).substring(0, 200));
+    } catch (aiError) {
+      console.error('[generate-goal] AI generation error:', aiError);
+      return NextResponse.json(
+        {
+          error: 'AI failed to generate goal. The AI service may be unavailable or experiencing issues. Please try again in a moment.',
+          details: aiError instanceof Error ? aiError.message : 'Unknown AI error'
+        },
+        { status: 500 }
+      );
+    }
 
     // Log the AI interaction
-    await supabase.from('ai_interactions').insert([
-      {
-        user_id: user.id,
-        interaction_type: 'smart_goal',
-        prompt: rawGoalText,
-        response: JSON.stringify(smartGoal),
-        goal_id: null,
-      },
-    ]);
+    try {
+      await supabase.from('ai_interactions').insert([
+        {
+          user_id: user.id,
+          interaction_type: 'smart_goal',
+          prompt: rawGoalText,
+          response: JSON.stringify(smartGoal),
+          goal_id: null,
+        },
+      ]);
+      console.log('[generate-goal] Successfully logged AI interaction');
+    } catch (dbError) {
+      // Log error but don't fail the request - the goal was generated successfully
+      console.error('[generate-goal] Failed to log AI interaction (non-fatal):', dbError);
+    }
 
     return NextResponse.json({ smartGoal });
   } catch (error) {
-    console.error('AI Goal Generation Error:', error);
+    console.error('[generate-goal] Unexpected error:', error);
     return NextResponse.json(
-      { error: 'Failed to generate SMART goal. Please try again.' },
+      {
+        error: 'An unexpected error occurred. Please try again.',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }

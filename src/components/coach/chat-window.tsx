@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -24,6 +25,7 @@ interface ChatWindowProps {
 }
 
 export function ChatWindow({ conversationId, initialMessages }: ChatWindowProps) {
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -176,6 +178,11 @@ export function ChatWindow({ conversationId, initialMessages }: ChatWindowProps)
       }
 
       setIsLoading(false);
+
+      // Refresh to update conversation title in sidebar if this was the first message
+      if (initialMessages.length === 0) {
+        router.refresh();
+      }
 
       // Messages are already updated via streaming - no reload needed
     } catch (error) {
