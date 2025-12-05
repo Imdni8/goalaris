@@ -17,7 +17,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Frontend**: Next.js 14 (App Router) + React + TypeScript + Tailwind CSS
 - **Backend**: Next.js API Routes + Server Components
 - **Database**: Supabase (PostgreSQL with Row Level Security)
-- **AI**: Anthropic Claude Sonnet 4.5 (via Google Cloud Vertex AI)
+- **AI**: Google Gemini 2.5 Flash Lite (via Google AI Studio API, NOT Vertex AI)
 - **UI**: Shadcn/ui components + Radix UI primitives
 - **Forms**: react-hook-form + Zod validation
 - **Styling**: Tailwind CSS utility-first
@@ -43,7 +43,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ✅ **Progress Visualization**: Task completion charts, activity heatmap, dashboard overview
 ✅ **Self-Assessment**: AI generates first-person review summaries with inline editing
 ✅ **AI Career Coach**: Conversational coaching with context awareness, goal focus, pattern recognition
-✅ **Production Deployment**: Live at Vercel with production Supabase + GCP Vertex AI
+✅ **Production Deployment**: Live at Vercel with production Supabase + Google Gemini AI
 ✅ **All Critical Bugs Fixed**: TypeScript null errors, streaming responses, ESLint issues resolved
 
 ### What's Next (Post-Beta Feedback):
@@ -58,7 +58,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - [x] Deploy to production (Vercel) ✅
 - [x] Set up production Supabase instance ✅
 - [x] Configure environment variables in production ✅
-- [x] Set up Google Cloud Vertex AI access for production ✅
+- [x] Set up Google Gemini API access for production ✅
 - [x] Fix all TypeScript null errors comprehensively ✅
 - [ ] Test complete user flow in production
 - [ ] Create onboarding documentation/guide for beta users
@@ -111,7 +111,7 @@ Track all features to be built, ordered logically by dependencies. Check off as 
 
 ### AI Features - Goal Generation (COMPLETED ✅)
 - [x] API route for generating SMART goals from raw text
-- [x] Claude prompt template for SMART goal structuring
+- [x] Gemini prompt template for SMART goal structuring
 - [x] Zod schema for validating AI response
 - [x] UI form for AI goal input (2-step: input → review)
 - [x] Log AI interactions to database
@@ -120,7 +120,7 @@ Track all features to be built, ordered logically by dependencies. Check off as 
 
 ### AI Features - Task Breakdown (COMPLETED ✅)
 - [x] API route for generating task breakdown from goal
-- [x] Claude prompt template for task generation
+- [x] Gemini prompt template for task generation
 - [x] Zod schema for validating task list response
 - [x] Button on goal detail to trigger AI task generation
 - [x] Insert generated tasks into database with proper ordering
@@ -129,7 +129,7 @@ Track all features to be built, ordered logically by dependencies. Check off as 
 
 ### AI Features - SMART Refinement (COMPLETED ✅)
 - [x] API route for refining SMART elements `/api/ai/refine-smart-element`
-- [x] Claude prompt template for SMART element refinement
+- [x] Gemini prompt template for SMART element refinement
 - [x] Inline "Refine with AI" button for each SMART element
 - [x] Input field for additional refinement prompt
 - [x] Show refined version in preview before accepting
@@ -255,7 +255,7 @@ Track all features to be built, ordered logically by dependencies. Check off as 
 - [x] API route for coaching feedback (`/api/coach/send-message`)
   - Input: conversation + user context (goals, tasks, action logs)
   - Output: streaming AI responses
-- [x] Claude prompt template for coaching
+- [x] Gemini prompt template for coaching
 - [x] Chat-based coaching interface (`/dashboard/coach`)
 - [x] Conversation management (list, create, history)
 - [x] Context-aware coaching (accesses user's goals, tasks, recent action logs)
@@ -609,12 +609,12 @@ The self-assessment feature uses a Claude artifact-style editing pattern:
 
 ## AI Integration Details
 
-### When Claude is Called
+### When Gemini AI is Called
 
-1. **SMART Goal Creation** - User submits raw goal → Claude structures it
-2. **Task Breakdown** - Goal created → Claude generates 5-10 tasks
-3. **Coaching Feedback** - On-demand or periodic → Claude analyzes progress
-4. **Assessment Summary** - Pre-review → Claude generates contribution summary
+1. **SMART Goal Creation** - User submits raw goal → Gemini structures it
+2. **Task Breakdown** - Goal created → Gemini generates 5-10 tasks
+3. **Coaching Feedback** - On-demand or periodic → Gemini analyzes progress
+4. **Assessment Summary** - Pre-review → Gemini generates contribution summary
 
 ### Prompt Strategy
 
@@ -625,7 +625,7 @@ The self-assessment feature uses a Claude artifact-style editing pattern:
 
 ### Error Handling in AI
 
-All Claude API calls:
+All Gemini API calls:
 - Are wrapped in try/catch blocks
 - Return clear error messages to users
 - Log failures for debugging
@@ -660,12 +660,11 @@ NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
 NEXT_PUBLIC_SUPABASE_ANON_KEY=[anon-key]
 SUPABASE_SERVICE_ROLE_KEY=[service-role-key]
 
-# Google Cloud Vertex AI Configuration (for AI features)
-GCP_PROJECT_ID=[your-gcp-project-id]
-GCP_REGION=[gcp-region-with-vertex-ai]
+# Google Gemini AI API Key (for AI features)
+GOOGLE_AI_API_KEY=[your-gemini-api-key]
 ```
 
-**Note:** AI features use Google Cloud Vertex AI with Claude models via Application Default Credentials (ADC). No API key is stored in `.env.local`.
+**Note:** AI features use Google Gemini API via Google AI Studio. The API key must be set in environment variables.
 
 ### Row Level Security (RLS)
 
@@ -676,11 +675,22 @@ All tables have RLS enabled with policies:
 
 ## AI Integration Setup
 
-### Google Gemini API (Current Implementation)
+### Google Gemini API via Google AI Studio
 
-The app uses **Google Gemini API directly** for all AI features (SMART goals, task breakdown, coaching, assessment).
+**IMPORTANT:** The app uses **Google Gemini API via Google AI Studio** for all AI features.
 
-**Note**: Despite the filename `src/lib/ai/claude.ts`, the code uses Gemini API, not Anthropic Claude or Vertex AI.
+**What we're using:**
+- **Service**: Google AI Studio API (https://aistudio.google.com)
+- **Model**: `gemini-2.5-flash-lite`
+- **Endpoint**: `https://aiplatform.googleapis.com/v1/publishers/google/models`
+- **Authentication**: API key passed as query parameter (`?key=...`)
+- **Implementation**: Direct `fetch()` calls (no SDK)
+
+**What we're NOT using:**
+- ❌ Google Cloud Vertex AI (different service, uses ADC/service accounts)
+- ❌ Anthropic Claude API (different AI provider entirely)
+
+**Note:** Despite the filename `src/lib/ai/claude.ts`, the code uses Google Gemini API.
 
 ### Required Environment Variable
 
@@ -690,7 +700,7 @@ GOOGLE_AI_API_KEY=your-api-key-here
 ```
 
 **Get API Key**:
-1. Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
+1. Go to [Google AI Studio](https://aistudio.google.com/apikey)
 2. Create API key
 3. Copy and paste into `.env.local`
 
@@ -700,19 +710,12 @@ Add `GOOGLE_AI_API_KEY` to Vercel environment variables:
 1. Vercel Dashboard → Project → Settings → Environment Variables
 2. Add key for Production, Preview, Development environments
 
-### API Details
+### Unused Environment Variables
 
-- **Endpoint**: `https://aiplatform.googleapis.com/v1/publishers/google/models`
-- **Model**: `gemini-2.5-flash-lite`
-- **Authentication**: API key (query parameter)
-- **No SDK dependency**: Direct `fetch()` calls
-
-### Legacy/Unused Variables
-
-These can be removed (not used in current implementation):
+These are NOT used and can be removed:
 ```env
-GCP_PROJECT_ID=celtic-medium-478207-m0  # Not used
-GCP_REGION=us-central1                   # Not used
+GCP_PROJECT_ID  # Only needed for Vertex AI, not Google AI Studio
+GCP_REGION      # Only needed for Vertex AI, not Google AI Studio
 ```
 
 ## Code Quality Standards
@@ -816,7 +819,7 @@ When deploying to production:
 
 1. **Environment Variables** - Set all vars in deployment platform (Vercel, etc.)
 2. **Database** - Use Supabase hosted instance, run migrations
-3. **API Keys** - Rotate Claude API key in production
+3. **API Keys** - Rotate Gemini API key in production
 4. **Error Tracking** - Add Sentry for monitoring
 5. **Logging** - Set up structured logging for API routes
 6. **Rate Limiting** - Implement for AI endpoints
@@ -843,11 +846,11 @@ When deploying to production:
 2. Use generated types from `types.ts`
 3. Handle RLS errors gracefully
 
-### Integrating Claude for New Feature
+### Integrating Gemini AI for New Feature
 
 1. Add prompt template to `src/lib/ai/prompts.ts`
 2. Add schema to `src/lib/ai/schemas.ts`
-3. Add function to `src/lib/ai/claude.ts`
+3. Add function to `src/lib/ai/claude.ts` (yes, filename says claude but uses Gemini)
 4. Create API route in `src/app/api/ai/[feature]/route.ts`
 5. Call from client via fetch
 
@@ -855,7 +858,7 @@ When deploying to production:
 
 - Use Server Components to reduce JS bundle
 - Implement pagination for goal/task lists (if many)
-- Cache Claude prompts when possible
+- Cache Gemini API responses when possible
 - Use Supabase real-time for live progress updates (phase 2)
 - Image optimization via Next.js Image component
 
@@ -882,6 +885,7 @@ When deploying to production:
 
 - [Next.js Docs](https://nextjs.org/docs)
 - [Supabase Docs](https://supabase.com/docs)
-- [Anthropic Claude Docs](https://docs.anthropic.com)
+- [Google AI Studio](https://aistudio.google.com)
+- [Gemini API Docs](https://ai.google.dev/gemini-api/docs)
 - [Tailwind CSS](https://tailwindcss.com/docs)
-- while testing, I'll report bugs. i expect you to do RCA on them and propose fixes. These should be documented in the tsting folder.
+- while testing, I'll report bugs. i expect you to do RCA on them and propose fixes. These should be documented in the testing folder.
