@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sparkles } from 'lucide-react';
 
@@ -29,6 +29,17 @@ export default function RefinableSmartField({
   const [refinementPrompt, setRefinementPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea based on content
+  useEffect(() => {
+    if (textareaRef.current) {
+      // Reset height to auto to get correct scrollHeight
+      textareaRef.current.style.height = 'auto';
+      // Set height to scrollHeight (capped by max-height in CSS)
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [value]);
 
   const handleRefineClick = () => {
     setIsRefining(true);
@@ -84,11 +95,12 @@ export default function RefinableSmartField({
     <div>
       <label className="block text-sm font-medium text-gray-700">{label}</label>
       <textarea
+        ref={textareaRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        rows={rows}
         placeholder={placeholder}
-        className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none"
+        className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none overflow-hidden resize-none"
+        style={{ minHeight: '60px', maxHeight: '400px' }}
       />
 
       {!isRefining ? (

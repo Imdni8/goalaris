@@ -40,13 +40,14 @@ export async function POST(request: NextRequest) {
       { title: goalContext.title, description: goalContext.description }
     );
 
-    // Log the AI interaction
+    // Log the AI interaction (no goal_id available in inline refinement before save)
     await supabase.from('ai_interactions').insert([
       {
         user_id: user.id,
-        interaction_type: 'smart_refinement_inline',
-        input_data: { elementName, currentValue, userPrompt, goalContext },
-        output_data: { refinedText },
+        interaction_type: 'smart_goal',
+        goal_id: null,
+        prompt: `Refine ${elementName}: ${currentValue}. User request: ${userPrompt}`,
+        response: refinedText,
       },
     ]);
 

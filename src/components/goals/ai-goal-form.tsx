@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,15 @@ export default function AiGoalForm() {
 
   const [rawGoalText, setRawGoalText] = useState('');
   const [generatedGoal, setGeneratedGoal] = useState<any>(null);
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize description textarea
+  useEffect(() => {
+    if (descriptionRef.current && generatedGoal?.description) {
+      descriptionRef.current.style.height = 'auto';
+      descriptionRef.current.style.height = `${descriptionRef.current.scrollHeight}px`;
+    }
+  }, [generatedGoal?.description]);
 
   async function handleGenerate(e: React.FormEvent) {
     e.preventDefault();
@@ -161,10 +170,11 @@ export default function AiGoalForm() {
       <div>
         <label className="block text-sm font-medium text-gray-700">Description</label>
         <textarea
+          ref={descriptionRef}
           value={generatedGoal?.description || ''}
           onChange={(e) => setGeneratedGoal({ ...generatedGoal, description: e.target.value })}
-          rows={3}
-          className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none"
+          className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none overflow-hidden resize-none"
+          style={{ minHeight: '60px', maxHeight: '400px' }}
         />
       </div>
 
