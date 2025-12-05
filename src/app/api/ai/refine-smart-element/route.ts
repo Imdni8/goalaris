@@ -56,9 +56,10 @@ export async function POST(request: NextRequest) {
     await supabase.from('ai_interactions').insert([
       {
         user_id: user.id,
-        interaction_type: 'smart_refinement',
-        input_data: { elementName, currentValue, userPrompt, goalId },
-        output_data: { refinedText },
+        interaction_type: 'smart_goal',
+        goal_id: goalId,
+        prompt: `Refine ${elementName}: ${currentValue}. User request: ${userPrompt}`,
+        response: refinedText,
       },
     ]);
 

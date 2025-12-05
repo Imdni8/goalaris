@@ -26,9 +26,10 @@ export async function POST(request: NextRequest) {
     await supabase.from('ai_interactions').insert([
       {
         user_id: user.id,
-        interaction_type: 'goal_generation',
-        input_data: { rawGoalText },
-        output_data: smartGoal,
+        interaction_type: 'smart_goal',
+        prompt: rawGoalText,
+        response: JSON.stringify(smartGoal),
+        goal_id: null,
       },
     ]);
 
