@@ -49,5 +49,6 @@ user-feedback.md
 beta-onboarding-actions.md
 imp_stuff.txt
 
-# Testing files (internal use only)
+# internal files
 testing/
+.claude/settings.local.json

@@ -7,7 +7,14 @@ import { z } from 'zod';
 export const SmartGoalSchema = z.object({
   title: z.string().describe('Goal title'),
   specific: z.string().describe('Specific aspect'),
-  measurable: z.string().describe('Measurable metrics'),
+  measurable: z.union([z.string(), z.array(z.string())])
+    .transform((val) => {
+      if (Array.isArray(val)) {
+        return val.map((item, idx) => `${idx + 1}. ${item.replace(/^\d+\.\s*/, '')}`).join('\n');
+      }
+      return val;
+    })
+    .describe('Measurable metrics'),
   achievable: z.string().describe('Why it is achievable'),
   relevant: z.string().describe('Relevance to role'),
   time_bound: z.string().describe('Target date'),
@@ -55,15 +62,45 @@ export function parseSmartGoalResponse(content: string): SmartGoal {
 
     console.log('[parseSmartGoalResponse] Cleaned JSON length:', jsonContent.length);
 
-    const parsed = JSON.parse(jsonContent);
+    // Handle potential control characters in JSON
+    // Some AI models may return strings with unescaped control characters
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonContent);
+    } catch (parseError) {
+      console.log('[parseSmartGoalResponse] First parse attempt failed:', parseError);
+      console.log('[parseSmartGoalResponse] Attempting to sanitize control characters...');
+
+      // Sanitize JSON by removing problematic control characters
+      // Strategy: Remove all ASCII control characters (0x00-0x1F) except \n, \r, \t which are allowed in JSON strings
+      // But remove them ALL since they should be escaped as \\n, \\r, \\t in valid JSON
+      const fixedJson = jsonContent.replace(/[\x00-\x1F\x7F]/g, '');
+
+      console.log('[parseSmartGoalResponse] Sanitized JSON (first 200 chars):', fixedJson.substring(0, 200));
+      try {
+        parsed = JSON.parse(fixedJson);
+        console.log('[parseSmartGoalResponse] Successfully parsed after sanitization');
+      } catch (retryError) {
+        console.error('[parseSmartGoalResponse] Still failed after sanitization:', retryError);
+        console.error('[parseSmartGoalResponse] Sanitized content:', fixedJson.substring(0, 600));
+        throw retryError;
+      }
+    }
     console.log('[parseSmartGoalResponse] Parsed object keys:', Object.keys(parsed).join(', '));
+
+    // Log the type of measurable for debugging
+    if (parsed.measurable) {
+      console.log('[parseSmartGoalResponse] measurable type:', Array.isArray(parsed.measurable) ? 'array' : typeof parsed.measurable);
+      console.log('[parseSmartGoalResponse] measurable value:', JSON.stringify(parsed.measurable).substring(0, 100));
+    }
 
     const validated = SmartGoalSchema.parse(parsed);
     console.log('[parseSmartGoalResponse] Successfully validated SMART goal');
     return validated;
   } catch (error) {
     console.error('[parseSmartGoalResponse] Parse error:', error);
-    console.error('[parseSmartGoalResponse] Content that failed to parse:', content.substring(0, 500));
+    console.error('[parseSmartGoalResponse] Content that failed to parse (first 500 chars):', content.substring(0, 500));
+    console.error('[parseSmartGoalResponse] Content (showing control chars):', JSON.stringify(content.substring(0, 500)));
     throw new Error(`Failed to parse SMART goal response: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }

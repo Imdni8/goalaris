@@ -888,5 +888,38 @@ When deploying to production:
 - [Google AI Studio](https://aistudio.google.com)
 - [Gemini API Docs](https://ai.google.dev/gemini-api/docs)
 - [Tailwind CSS](https://tailwindcss.com/docs)
-- while testing, I'll report bugs. i expect you to do RCA on them and propose fixes. These should be documented in the testing folder.
+
+## Testing & Bug Tracking
+
+### Bug Fix Documentation
+
+All resolved bugs are documented in `testing/bug-fixes/` with RCA and solutions.
+
+**Current Bug Fixes:**
+
+1. **AI Goal Generation Issues** (`testing/bug-fixes/ai-goal-generation-fixes.md`)
+   - Issue #1: Measurable field array vs string type mismatch ✅ RESOLVED
+     - Root cause: Gemini non-deterministically returns array instead of string
+     - Fix: Union type + transform in Zod schema + prompt clarification
+   - Issue #2: Control characters in JSON response ✅ RESOLVED
+     - Root cause: Gemini returns unescaped ASCII control characters
+     - Fix: Two-phase parsing with sanitization fallback
+   - Test suite: `testing/bug-fixes/test-smart-goal-fix.ts`
+
+2. **Signup Issues** (`testing/bug-fixes/SIGNUP-FIX.md`)
+   - Authentication flow and form validation fixes
+
+3. **Database Constraint Errors** (`testing/bug-fixes/GOAL-GENERATION-DB-CONSTRAINT-ERROR.md`)
+   - Goal creation constraint violations and solutions
+
+**Important Notes:**
+- All files in `testing/bug-fixes/` contain accurate, current information
+- Incorrect/outdated RCA files have been removed
+- Each bug doc includes: problem, root cause, solution, prevention strategies
+
+### Process
+
+- When bugs reported, perform RCA using staff-engineer agent
+- Document in `testing/bug-fixes/` with clear, concise summaries
+- Remove outdated/incorrect documentation to avoid confusion
 - Don't commit without asking first
