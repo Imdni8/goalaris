@@ -2,6 +2,12 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { streamCoachResponse } from '@/lib/ai/claude';
 import { computeHealthMetrics } from '@/lib/coaching/context-analyzer';
+import {
+  rateLimiter,
+  RATE_LIMITS,
+  getClientIdentifier,
+  createRateLimitResponse,
+} from '@/lib/utils/rate-limiter';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,6 +18,18 @@ export async function POST(request: NextRequest) {
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limiting - more lenient for coaching (conversational)
+    const identifier = getClientIdentifier(user.id, request);
+    const rateLimit = rateLimiter.check(
+      identifier,
+      RATE_LIMITS.AI_COACHING.limit,
+      RATE_LIMITS.AI_COACHING.windowMs
+    );
+
+    if (!rateLimit.allowed) {
+      return createRateLimitResponse(rateLimit.resetAt);
     }
 
     // Parse request body

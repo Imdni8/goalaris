@@ -1,6 +1,12 @@
 import { createClient } from '@/lib/supabase/server';
 import { generateTaskBreakdown } from '@/lib/ai/claude';
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  rateLimiter,
+  RATE_LIMITS,
+  getClientIdentifier,
+  createRateLimitResponse,
+} from '@/lib/utils/rate-limiter';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,6 +17,18 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limiting
+    const identifier = getClientIdentifier(user.id, request);
+    const rateLimit = rateLimiter.check(
+      identifier,
+      RATE_LIMITS.AI_GENERATION.limit,
+      RATE_LIMITS.AI_GENERATION.windowMs
+    );
+
+    if (!rateLimit.allowed) {
+      return createRateLimitResponse(rateLimit.resetAt);
     }
 
     const { goalId } = await request.json();
