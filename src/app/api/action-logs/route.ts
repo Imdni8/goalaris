@@ -105,22 +105,22 @@ export async function POST(req: Request) {
     }
 
     // Track action_logged event - direct insert for debugging
-    supabase
+    const analyticsResult = await supabase
       .from('analytics_events')
       .insert({
         user_id: user.id,
         event_name: 'action_logged',
         properties: { taskId: task_id },
-      })
-      .then(({ error: analyticsError }) => {
-        if (analyticsError) {
-          console.error('[Analytics] Direct insert failed:', analyticsError);
-        } else {
-          console.log('[Analytics] Direct insert succeeded for action_logged');
-        }
       });
 
-    return NextResponse.json({ data });
+    console.log('[Analytics] Result:', analyticsResult);
+
+    return NextResponse.json({
+      data,
+      _debug_analytics: analyticsResult.error ?
+        { error: analyticsResult.error.message } :
+        { success: true }
+    });
   } catch (err) {
     console.error('Error creating action log:', err);
     return NextResponse.json(
