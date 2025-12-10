@@ -52,22 +52,23 @@ export default function ActionLogForm({ taskId, onSuccess, alwaysOpen = false }:
 
       const isFirstLog = !existingLogs || existingLogs.length === 0;
 
-      // Insert the action log
+      // Insert the action log via API (for analytics tracking)
       const hasBlocker = formData.status === 'blocked' && formData.blocker_description;
-      const { error } = await supabase.from('action_logs').insert([
-        {
+      const response = await fetch('/api/action-logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           task_id: taskId,
-          user_id: user.id,
           title: formData.title,
           description: formData.description || null,
           status: formData.status,
           blocker_description: hasBlocker ? formData.blocker_description : null,
-          blocker_status: hasBlocker ? 'active' : null,
-        },
-      ]);
+        }),
+      });
 
-      if (error) {
-        alert('Failed to add progress log: ' + error.message);
+      if (!response.ok) {
+        const errorData = await response.json();
+        alert('Failed to add progress log: ' + (errorData.error || 'Unknown error'));
         return;
       }
 
