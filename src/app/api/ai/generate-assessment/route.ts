@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
     // Track assessment_generated event
     await trackEvent('assessment_generated', {
       goalCount: goalsWithActivity.length,
-    });
+    }, user.id);
 
     // Return the generated assessment
     return NextResponse.json({

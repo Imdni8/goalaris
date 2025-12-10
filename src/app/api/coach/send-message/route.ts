@@ -228,7 +228,7 @@ export async function POST(request: NextRequest) {
         // Track coach_message_sent event
         await trackEvent('coach_message_sent', {
           conversationId,
-        });
+        }, user.id);
 
         // Auto-generate conversation title if this is the first exchange
         if (!conversation.title || conversation.title === 'New Conversation') {

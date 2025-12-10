@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
     await trackEvent('tasks_generated', {
       goalId,
       count: insertedTasks?.length || 0,
-    });
+    }, user.id);
 
     return NextResponse.json({
       tasks: insertedTasks,

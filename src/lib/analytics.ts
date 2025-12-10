@@ -4,30 +4,37 @@ import { createClient } from '@/lib/supabase/server';
  * Track a user event to the analytics_events table
  * @param eventName - Name of the event (e.g., 'goal_created', 'tasks_generated')
  * @param properties - Additional properties to store with the event (JSONB)
+ * @param userId - Optional user ID (if not provided, will attempt to get from session)
  */
 export async function trackEvent(
   eventName: string,
-  properties: Record<string, unknown> = {}
+  properties: Record<string, unknown> = {},
+  userId?: string
 ): Promise<void> {
   try {
     const supabase = await createClient();
 
-    // Get the authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    let finalUserId = userId;
 
-    if (authError || !user) {
-      console.error('Analytics: No authenticated user', authError);
-      return;
+    // If userId not provided, try to get from session
+    if (!finalUserId) {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        console.error('Analytics: No authenticated user', authError);
+        return;
+      }
+      finalUserId = user.id;
     }
 
     // Insert the event
     const { error: insertError } = await supabase
       .from('analytics_events')
       .insert({
-        user_id: user.id,
+        user_id: finalUserId,
         event_name: eventName,
         properties,
       });

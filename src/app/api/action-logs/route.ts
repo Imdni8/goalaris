@@ -107,7 +107,7 @@ export async function POST(req: Request) {
     // Track action_logged event (don't await to avoid blocking response)
     trackEvent('action_logged', {
       taskId: task_id,
-    }).catch(err => console.error('Failed to track action_logged:', err));
+    }, user.id).catch(err => console.error('Failed to track action_logged:', err));
 
     return NextResponse.json({ data });
   } catch (err) {
