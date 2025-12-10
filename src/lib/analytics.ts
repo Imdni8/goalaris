@@ -12,6 +12,8 @@ export async function trackEvent(
   userId?: string
 ): Promise<void> {
   try {
+    console.log('[Analytics] Attempting to track event:', { eventName, userId, properties });
+
     const supabase = await createClient();
 
     let finalUserId = userId;
@@ -24,11 +26,13 @@ export async function trackEvent(
       } = await supabase.auth.getUser();
 
       if (authError || !user) {
-        console.error('Analytics: No authenticated user', authError);
+        console.error('[Analytics] No authenticated user', authError);
         return;
       }
       finalUserId = user.id;
     }
+
+    console.log('[Analytics] Inserting event with userId:', finalUserId);
 
     // Insert the event
     const { error: insertError } = await supabase
@@ -40,14 +44,16 @@ export async function trackEvent(
       });
 
     if (insertError) {
-      console.error('Analytics: Failed to track event', {
+      console.error('[Analytics] Failed to track event', {
         eventName,
         error: insertError,
       });
+    } else {
+      console.log('[Analytics] Successfully tracked event:', eventName);
     }
   } catch (error) {
     // Don't throw errors - analytics should never break the app
-    console.error('Analytics: Unexpected error tracking event', {
+    console.error('[Analytics] Unexpected error tracking event', {
       eventName,
       error,
     });
