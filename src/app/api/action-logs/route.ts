@@ -104,10 +104,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Track action_logged event (don't await to avoid blocking response)
-    trackEvent('action_logged', {
-      taskId: task_id,
-    }, user.id).catch(err => console.error('Failed to track action_logged:', err));
+    // Track action_logged event - direct insert for debugging
+    supabase
+      .from('analytics_events')
+      .insert({
+        user_id: user.id,
+        event_name: 'action_logged',
+        properties: { taskId: task_id },
+      })
+      .then(({ error: analyticsError }) => {
+        if (analyticsError) {
+          console.error('[Analytics] Direct insert failed:', analyticsError);
+        } else {
+          console.log('[Analytics] Direct insert succeeded for action_logged');
+        }
+      });
 
     return NextResponse.json({ data });
   } catch (err) {

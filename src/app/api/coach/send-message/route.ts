@@ -225,10 +225,21 @@ export async function POST(request: NextRequest) {
           console.error('Error saving AI message:', aiMsgError);
         }
 
-        // Track coach_message_sent event
-        await trackEvent('coach_message_sent', {
-          conversationId,
-        }, user.id);
+        // Track coach_message_sent event - direct insert for debugging
+        supabase
+          .from('analytics_events')
+          .insert({
+            user_id: user.id,
+            event_name: 'coach_message_sent',
+            properties: { conversationId },
+          })
+          .then(({ error: analyticsError }) => {
+            if (analyticsError) {
+              console.error('[Analytics] Direct insert failed for coach:', analyticsError);
+            } else {
+              console.log('[Analytics] Direct insert succeeded for coach_message_sent');
+            }
+          });
 
         // Auto-generate conversation title if this is the first exchange
         if (!conversation.title || conversation.title === 'New Conversation') {
