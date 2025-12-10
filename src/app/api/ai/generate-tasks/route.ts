@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { generateTaskBreakdown } from '@/lib/ai/claude';
+import { trackEvent } from '@/lib/analytics';
 import { NextRequest, NextResponse } from 'next/server';
 import {
   rateLimiter,
@@ -102,6 +103,12 @@ export async function POST(request: NextRequest) {
         response: JSON.stringify(taskBreakdown),
       },
     ]);
+
+    // Track tasks_generated event
+    await trackEvent('tasks_generated', {
+      goalId,
+      count: insertedTasks?.length || 0,
+    });
 
     return NextResponse.json({
       tasks: insertedTasks,

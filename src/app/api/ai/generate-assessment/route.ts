@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { trackEvent } from '@/lib/analytics';
 import { NextRequest, NextResponse } from 'next/server';
 import { ASSESSMENT_SUMMARY_PROMPT } from '@/lib/ai/prompts';
 import { callGemini } from '@/lib/ai/claude';
@@ -156,6 +157,11 @@ export async function POST(request: NextRequest) {
     );
 
     const assessment = await callGemini(prompt);
+
+    // Track assessment_generated event
+    await trackEvent('assessment_generated', {
+      goalCount: goalsWithActivity.length,
+    });
 
     // Return the generated assessment
     return NextResponse.json({

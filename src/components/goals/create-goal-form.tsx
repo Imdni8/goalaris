@@ -61,6 +61,16 @@ export default function CreateGoalForm() {
         return;
       }
 
+      // Track goal creation
+      await fetch('/api/analytics/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventName: 'goal_created',
+          properties: { type: 'manual' },
+        }),
+      });
+
       // Redirect to the new goal's detail page
       router.push(`/dashboard/goals/${data.id}`);
     } catch (err) {

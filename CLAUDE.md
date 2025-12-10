@@ -45,6 +45,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ✅ **AI Career Coach**: Conversational coaching with context awareness, goal focus, pattern recognition
 ✅ **Production Deployment**: Live at Vercel with production Supabase + Google Gemini AI
 ✅ **All Critical Bugs Fixed**: TypeScript null errors, streaming responses, ESLint issues resolved
+✅ **Error Handling**: React Error Boundaries, 404/500 pages, toast notifications, user-friendly API errors
+✅ **Rate Limiting**: In-memory rate limiter on AI endpoints (10/min for generation, 20/min for coaching)
 
 ### What's Next (Post-Beta Feedback):
 ⏳ Test production user flow end-to-end
@@ -60,16 +62,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - [x] Configure environment variables in production ✅
 - [x] Set up Google Gemini API access for production ✅
 - [x] Fix all TypeScript null errors comprehensively ✅
+- [x] Add production error handling ✅
 - [ ] Test complete user flow in production
 - [ ] Create onboarding documentation/guide for beta users
-- [ ] Set up basic analytics/monitoring (track user actions, errors)
 - [ ] Create feedback collection mechanism (form, email, or in-app)
 
-**Nice to Have:**
+**Nice to Have (Next Session):**
+- [x] Add basic rate limiting to prevent abuse ✅
+- [x] Set up Sentry error tracking ✅
+- [x] Set up basic analytics (Custom Supabase table) ✅
 - [ ] Create demo video showing key features
 - [ ] Write user guide with screenshots
-- [ ] Set up error tracking (Sentry or similar)
-- [ ] Add basic rate limiting to prevent abuse
+
+### Monitoring & Analytics Decision (2025-12-10):
+**Error Tracking:** Sentry (free tier, 5k errors/month)
+- Why: Real-time error monitoring, full stack traces, user context
+- Setup: ~15 min, need DSN from sentry.io
+
+**Usage Analytics:** Custom Supabase table + SQL queries
+- Why: Free, full control, no external dependency, privacy-friendly
+- Track: goal_created, tasks_generated, action_logged, assessment_generated, coach_message_sent
+- No charts (just SQL queries) - can add BI tool later if needed
+- SKIP: Amplitude, PostHog, Vercel Analytics (overkill for beta)
 
 **Beta User Instructions to Provide:**
 1. Sign up at [production URL]
@@ -718,6 +732,111 @@ GCP_PROJECT_ID  # Only needed for Vertex AI, not Google AI Studio
 GCP_REGION      # Only needed for Vertex AI, not Google AI Studio
 ```
 
+## Monitoring & Analytics
+
+### Sentry Error Tracking
+
+**Status:** ✅ Fully integrated
+
+**Setup:**
+- Installed `@sentry/nextjs` package
+- Configured in `sentry.client.config.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts`
+- Wrapped Next.js config with `withSentryConfig` in `next.config.js`
+- Integrated with error boundaries (`src/app/error.tsx`, `src/app/dashboard/error.tsx`)
+
+**Required Environment Variables:**
+```env
+NEXT_PUBLIC_SENTRY_DSN=your_sentry_dsn
+SENTRY_ORG=your_sentry_org
+SENTRY_PROJECT=your_sentry_project
+SENTRY_AUTH_TOKEN=your_sentry_auth_token
+```
+
+**How to Set Up:**
+1. Sign up at https://sentry.io (free tier: 5k errors/month)
+2. Create a new project for "Next.js"
+3. Copy the DSN from project settings
+4. Add environment variables to `.env.local` (local) and Vercel (production)
+
+**What's Tracked:**
+- All unhandled errors in client components
+- All unhandled errors in server components
+- Error boundaries capture React errors
+- API route errors (when explicitly captured)
+
+**Testing:**
+- Visit `/api/sentry-test` to trigger a test error
+- Check Sentry dashboard for captured error
+
+### Custom Analytics
+
+**Status:** ✅ Fully integrated
+
+**Implementation:**
+- Custom `analytics_events` table in Supabase
+- Row Level Security (RLS) ensures user data isolation
+- `trackEvent()` helper function in `src/lib/analytics.ts`
+- API route at `/api/analytics/track` for client-side tracking
+
+**Tracked Events:**
+1. `goal_created` - Properties: `{ type: 'ai' | 'manual' }`
+2. `tasks_generated` - Properties: `{ goalId: string, count: number }`
+3. `action_logged` - Properties: `{ taskId: string }`
+4. `assessment_generated` - Properties: `{ goalCount: number }`
+5. `coach_message_sent` - Properties: `{ conversationId: string }`
+
+**Database Schema:**
+```sql
+CREATE TABLE analytics_events (
+  id UUID PRIMARY KEY,
+  user_id UUID NOT NULL,
+  event_name TEXT NOT NULL,
+  properties JSONB DEFAULT '{}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**Querying Analytics:**
+See `docs/analytics-queries.md` for 12+ example SQL queries including:
+- Daily/Weekly active users
+- Feature adoption rates
+- User engagement metrics
+- Event trends over time
+- User retention analysis
+
+**Running Queries:**
+1. Supabase Dashboard → SQL Editor
+2. Paste query from `docs/analytics-queries.md`
+3. Click "Run"
+
+**Adding New Events:**
+```typescript
+import { trackEvent } from '@/lib/analytics';
+
+// In server component or API route
+await trackEvent('new_event_name', {
+  property1: 'value',
+  property2: 123,
+});
+
+// From client component (use API route)
+await fetch('/api/analytics/track', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    eventName: 'new_event_name',
+    properties: { property1: 'value' },
+  }),
+});
+```
+
+**Why Custom Analytics:**
+- Free (no external service costs)
+- Full data ownership and control
+- Privacy-friendly (data stays in Supabase)
+- Flexible querying with SQL
+- Can add BI tools later (Metabase, Redash) if needed
+
 ## Code Quality Standards
 
 ### Naming Conventions
@@ -923,3 +1042,4 @@ All resolved bugs are documented in `testing/bug-fixes/` with RCA and solutions.
 - Document in `testing/bug-fixes/` with clear, concise summaries
 - Remove outdated/incorrect documentation to avoid confusion
 - Don't commit without asking first
+- Reply briefly to requests that are not related to coding. For example, if I'm asking you to explain a decision or a third party package or tool.

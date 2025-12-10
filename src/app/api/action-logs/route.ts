@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { trackEvent } from '@/lib/analytics';
 import { NextResponse } from 'next/server';
 
 // GET - Fetch action logs (optionally filtered by task_id)
@@ -102,6 +103,11 @@ export async function POST(req: Request) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    // Track action_logged event
+    await trackEvent('action_logged', {
+      taskId: task_id,
+    });
 
     return NextResponse.json({ data });
   } catch (err) {

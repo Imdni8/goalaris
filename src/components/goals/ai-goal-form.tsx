@@ -90,6 +90,16 @@ export default function AiGoalForm() {
         return;
       }
 
+      // Track AI goal creation
+      await fetch('/api/analytics/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventName: 'goal_created',
+          properties: { type: 'ai' },
+        }),
+      });
+
       router.push('/dashboard/goals');
       router.refresh();
     } catch (err) {

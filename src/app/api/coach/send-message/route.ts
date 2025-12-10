@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { trackEvent } from '@/lib/analytics';
 import { NextRequest, NextResponse } from 'next/server';
 import { streamCoachResponse } from '@/lib/ai/claude';
 import { computeHealthMetrics } from '@/lib/coaching/context-analyzer';
@@ -223,6 +224,11 @@ export async function POST(request: NextRequest) {
         if (aiMsgError) {
           console.error('Error saving AI message:', aiMsgError);
         }
+
+        // Track coach_message_sent event
+        await trackEvent('coach_message_sent', {
+          conversationId,
+        });
 
         // Auto-generate conversation title if this is the first exchange
         if (!conversation.title || conversation.title === 'New Conversation') {
