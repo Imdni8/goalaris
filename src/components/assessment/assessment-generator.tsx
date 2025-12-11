@@ -10,6 +10,7 @@ interface Goal {
   title: string;
   status: string;
   created_at: string;
+  actionLogCount: number;
 }
 
 interface SavedAssessment {
@@ -82,10 +83,10 @@ export default function AssessmentGenerator({
     );
   };
 
-  // Select all active goals
+  // Select all active goals with action logs
   const selectAllActive = () => {
     const activeGoalIds = goals
-      .filter(g => g.status === 'active')
+      .filter(g => g.status === 'active' && g.actionLogCount > 0)
       .map(g => g.id);
     setSelectedGoals(activeGoalIds);
   };
@@ -215,27 +216,41 @@ export default function AssessmentGenerator({
 
           {goals.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3">
-              {goals.map(goal => (
-                <label
-                  key={goal.id}
-                  className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedGoals.includes(goal.id)}
-                    onChange={() => toggleGoal(goal.id)}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-gray-900">{goal.title}</span>
-                  <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${
-                    goal.status === 'active' ? 'bg-blue-100 text-blue-700' :
-                    goal.status === 'completed' ? 'bg-green-100 text-green-700' :
-                    'bg-gray-100 text-gray-700'
-                  }`}>
-                    {goal.status}
-                  </span>
-                </label>
-              ))}
+              {goals.map(goal => {
+                const isDisabled = goal.actionLogCount === 0;
+                return (
+                  <label
+                    key={goal.id}
+                    className={`flex items-center gap-2 p-2 rounded ${
+                      isDisabled
+                        ? 'opacity-50 cursor-not-allowed'
+                        : 'hover:bg-gray-50 cursor-pointer'
+                    }`}
+                    title={isDisabled ? 'This goal has no action logs yet. Log some progress before generating an assessment.' : ''}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedGoals.includes(goal.id)}
+                      onChange={() => !isDisabled && toggleGoal(goal.id)}
+                      disabled={isDisabled}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm text-gray-900 block truncate">{goal.title}</span>
+                      <span className="text-xs text-gray-500">
+                        {goal.actionLogCount} log{goal.actionLogCount !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                    <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${
+                      goal.status === 'active' ? 'bg-blue-100 text-blue-700' :
+                      goal.status === 'completed' ? 'bg-green-100 text-green-700' :
+                      'bg-gray-100 text-gray-700'
+                    }`}>
+                      {goal.status}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
           ) : (
             <p className="text-sm text-gray-500 py-4 text-center">

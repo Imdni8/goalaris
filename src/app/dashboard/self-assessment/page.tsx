@@ -12,12 +12,38 @@ export default async function SelfAssessmentPage() {
     redirect('/login');
   }
 
-  // Fetch user's goals for selection
+  // Fetch user's goals with action log counts
   const { data: goals } = await supabase
     .from('goals')
-    .select('id, title, status, created_at')
+    .select(`
+      id,
+      title,
+      status,
+      created_at,
+      tasks (
+        id,
+        action_logs (
+          id
+        )
+      )
+    `)
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
+
+  // Transform goals to include action log count
+  const goalsWithCounts = goals?.map(goal => {
+    const actionLogCount = goal.tasks?.reduce((count: number, task: any) => {
+      return count + (task.action_logs?.length || 0);
+    }, 0) || 0;
+
+    return {
+      id: goal.id,
+      title: goal.title,
+      status: goal.status,
+      created_at: goal.created_at,
+      actionLogCount,
+    };
+  }) || [];
 
   // Fetch saved assessments
   const { data: savedAssessments } = await supabase
@@ -37,7 +63,7 @@ export default async function SelfAssessmentPage() {
       </div>
 
       <AssessmentGenerator
-        goals={goals || []}
+        goals={goalsWithCounts}
         savedAssessments={savedAssessments || []}
         userId={user.id}
       />
