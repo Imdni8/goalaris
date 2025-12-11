@@ -27,19 +27,31 @@ export default function LoginPage() {
 
       if (error) {
         setError(error.message);
+        setLoading(false);
         return;
       }
 
+      // Keep loading state active during redirect
       router.push('/dashboard');
+      // Don't set loading to false - let the page navigation handle it
     } catch (err) {
       setError('An unexpected error occurred');
-    } finally {
       setLoading(false);
     }
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+      {/* Full-screen loading overlay */}
+      {loading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white bg-opacity-90">
+          <div className="text-center">
+            <div className="mb-4 inline-block h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+            <p className="text-lg font-medium text-gray-700">Logging you in...</p>
+          </div>
+        </div>
+      )}
+
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="mb-8 text-center">
