@@ -24,3 +24,6 @@ Sentry.init({
     }),
   ],
 });
+
+// Required for instrumentation of router navigation
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
