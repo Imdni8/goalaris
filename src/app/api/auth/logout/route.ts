@@ -14,5 +14,6 @@ export async function POST(request: Request) {
   const requestUrl = new URL(request.url);
   const redirectUrl = new URL('/', requestUrl.origin);
 
-  return NextResponse.redirect(redirectUrl);
+  // Use 303 status to force GET method on redirect (prevents POST to home page)
+  return NextResponse.redirect(redirectUrl, { status: 303 });
 }
