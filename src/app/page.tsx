@@ -55,11 +55,6 @@ export default function Home() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [nextStep, prevStep]);
 
-  const handleFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    alert("Thanks! We'll be in touch soon.");
-  };
-
   const stories = [
     {
       step: 1,
@@ -243,12 +238,14 @@ export default function Home() {
             <div className="text-[1.4rem] font-bold tracking-tight text-[var(--color-primary)]">
               goalaris
             </div>
-            <Link
-              href="/signup"
+            <a
+              href="https://docs.google.com/forms/d/e/1FAIpQLSecrDKYly6QRscuAoZ56Qp9kFdEVhLA6gbfZ4WtQKIMx0Oldg/viewform?usp=dialog"
+              target="_blank"
+              rel="noopener noreferrer"
               className="px-5 py-[0.65rem] bg-[var(--color-primary)] text-white text-sm font-semibold rounded-[var(--radius-sm)] transition-all duration-200 hover:bg-[var(--color-primary-dark)] hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.3)]"
             >
-              Get early access
-            </Link>
+              Join Waitlist
+            </a>
           </div>
         </div>
       </header>
@@ -283,28 +280,23 @@ export default function Home() {
               className="text-[1.15rem] text-[var(--color-text-soft)] max-w-[520px] mx-auto mb-10"
               style={{ animation: 'slideUp 0.7s ease-out 0.3s both' }}
             >
-              Track your goals and wins throughout the year. When review time comes, you&apos;ll have a
-              complete record of everything you accomplished.
+              Own your career&apos;s narrative and set yourself up for that promotion
+              and raise with confidence
             </p>
 
-            <form
-              className="flex gap-3 justify-center flex-wrap"
-              onSubmit={handleFormSubmit}
+            <div
+              className="flex justify-center"
               style={{ animation: 'slideUp 0.7s ease-out 0.4s both' }}
             >
-              <input
-                type="email"
-                placeholder="Enter your work email"
-                required
-                className="w-[280px] px-5 py-4 font-[var(--font-main)] text-base border border-[var(--color-border)] rounded-[var(--radius-sm)] bg-white outline-none transition-all duration-200 focus:border-[var(--color-primary)] focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)]"
-              />
-              <button
-                type="submit"
-                className="px-8 py-4 bg-[var(--color-primary)] text-white font-[var(--font-main)] text-base font-semibold border-none rounded-[var(--radius-sm)] cursor-pointer transition-all duration-200 hover:bg-[var(--color-primary-dark)] hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.3)]"
+              <a
+                href="https://docs.google.com/forms/d/e/1FAIpQLSecrDKYly6QRscuAoZ56Qp9kFdEVhLA6gbfZ4WtQKIMx0Oldg/viewform?usp=dialog"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-8 py-4 bg-[var(--color-primary)] text-white font-[var(--font-main)] text-base font-semibold rounded-[var(--radius-sm)] transition-all duration-200 hover:bg-[var(--color-primary-dark)] hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.3)]"
               >
                 Join waitlist
-              </button>
-            </form>
+              </a>
+            </div>
           </div>
         </section>
 
@@ -485,23 +477,14 @@ export default function Home() {
               <p className="text-[var(--color-text-soft)] mb-8 max-w-[400px] mx-auto">
                 Join professionals who walk into performance conversations fully prepared.
               </p>
-              <form
-                className="flex gap-3 justify-center flex-wrap"
-                onSubmit={handleFormSubmit}
+              <a
+                href="https://docs.google.com/forms/d/e/1FAIpQLSecrDKYly6QRscuAoZ56Qp9kFdEVhLA6gbfZ4WtQKIMx0Oldg/viewform?usp=dialog"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block px-8 py-4 bg-[var(--color-primary)] text-white font-[var(--font-main)] text-base font-semibold rounded-[var(--radius-sm)] transition-all duration-200 hover:bg-[var(--color-primary-dark)] hover:shadow-[0_4px_12px_rgba(59,130,246,0.3)]"
               >
-                <input
-                  type="email"
-                  placeholder="you@company.com"
-                  required
-                  className="w-[280px] px-5 py-4 font-[var(--font-main)] text-base border border-[var(--color-border)] rounded-[var(--radius-sm)] outline-none transition-all duration-200 focus:border-[var(--color-primary)] focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)]"
-                />
-                <button
-                  type="submit"
-                  className="px-8 py-4 bg-[var(--color-primary)] text-white font-[var(--font-main)] text-base font-semibold border-none rounded-[var(--radius-sm)] cursor-pointer transition-all duration-200 hover:bg-[var(--color-primary-dark)] hover:shadow-[0_4px_12px_rgba(59,130,246,0.3)]"
-                >
-                  Get early access
-                </button>
-              </form>
+                Join waitlist
+              </a>
             </div>
           </div>
         </section>
