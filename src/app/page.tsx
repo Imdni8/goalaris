@@ -252,7 +252,7 @@ export default function Home() {
 
       <main>
         {/* Hero Section */}
-        <section className="py-24 pb-20 text-center">
+        <section className="py-24 pb-20 text-center h-[85vh] flex flex-col justify-center">
           <div className="container mx-auto px-6 max-w-[1100px]">
             <div
               className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--color-primary-light)] border border-[var(--color-primary-medium)] rounded-full text-[0.8rem] font-medium text-[var(--color-primary)] mb-6"
@@ -301,18 +301,18 @@ export default function Home() {
         </section>
 
         {/* How it works - Stories Style */}
-        <section className="py-20">
-          <div className="container mx-auto px-6 max-w-[1100px]">
+        <section className="pt-[152px] pb-20 -mt-[20vh] relative z-10">
+          <div className="container mx-auto px-4 sm:px-6 max-w-[1100px]">
             <div className="text-center mb-12">
               <span className="inline-block text-xs font-semibold tracking-[0.1em] uppercase text-[var(--color-primary)] mb-3">
                 How it works
               </span>
-              <h2 className="text-4xl font-bold tracking-tight">From goal to review in 5 steps</h2>
+              <h2 className="text-2xl sm:text-4xl font-bold tracking-tight">From goal to review in 5 steps</h2>
             </div>
 
             <div className="max-w-[900px] mx-auto">
               {/* Progress bar */}
-              <div className="flex gap-[6px] mb-8 px-4">
+              <div className="flex gap-[6px] mb-8 px-2 sm:px-4">
                 {[0, 1, 2, 3, 4].map((idx) => (
                   <div
                     key={idx}
@@ -336,26 +336,26 @@ export default function Home() {
                     className={`story-slide ${idx === currentStep ? 'block' : 'hidden'}`}
                     style={idx === currentStep ? { animation: 'fadeSlide 0.4s ease-out' } : {}}
                   >
-                    <div className="p-8 px-10 flex items-center gap-4">
+                    <div className="p-4 sm:p-8 sm:px-10 flex items-center gap-4">
                       <div className="flex items-center justify-center min-w-[36px] h-[36px] bg-[var(--color-primary)] text-white rounded-full text-[0.9rem] font-bold">
                         {story.step}
                       </div>
                       <div>
-                        <h3 className="text-[1.35rem] font-bold tracking-tight mb-[0.35rem]">
+                        <h3 className="text-lg sm:text-[1.35rem] font-bold tracking-tight mb-[0.35rem]">
                           {story.title}
                         </h3>
-                        <p className="text-[0.95rem] text-[var(--color-text-soft)] leading-relaxed">
+                        <p className="text-sm sm:text-[0.95rem] text-[var(--color-text-soft)] leading-relaxed">
                           {story.description}
                         </p>
                       </div>
                     </div>
 
-                    <div className="relative border-t border-[var(--color-border)] h-[550px] overflow-hidden">
+                    <div className="relative border-t border-[var(--color-border)] h-[300px] sm:h-[550px] overflow-hidden bg-gray-100">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={story.image}
                         alt={story.title}
-                        className="w-full h-full object-cover block"
+                        className="w-full h-full object-contain sm:object-cover block"
                       />
                       <div className="absolute top-0 left-0 right-0 bottom-0 flex z-[5]">
                         <div className="flex-1 cursor-pointer" onClick={prevStep}></div>
@@ -400,12 +400,12 @@ export default function Home() {
                 ))}
 
                 {/* Navigation */}
-                <div className="flex justify-between items-center p-5 px-8 border-t border-[var(--color-border)] bg-[var(--color-primary-light)]">
+                <div className="flex justify-between items-center p-3 sm:p-5 px-4 sm:px-8 border-t border-[var(--color-border)] bg-[var(--color-primary-light)]">
                   <button
                     type="button"
                     onClick={prevStep}
                     disabled={currentStep === 0}
-                    className="flex items-center gap-2 px-5 py-3 bg-white border border-[var(--color-border)] rounded-[var(--radius-sm)] font-[var(--font-main)] text-[0.9rem] font-medium text-[var(--color-text)] cursor-pointer transition-all duration-200 hover:bg-[var(--color-primary)] hover:text-white hover:border-[var(--color-primary)] disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="flex items-center gap-1 sm:gap-2 px-3 sm:px-5 py-3 bg-white border border-[var(--color-border)] rounded-[var(--radius-sm)] font-[var(--font-main)] text-[0.9rem] font-medium text-[var(--color-text)] cursor-pointer transition-all duration-200 hover:bg-[var(--color-primary)] hover:text-white hover:border-[var(--color-primary)] disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -413,30 +413,30 @@ export default function Home() {
                       viewBox="0 0 24 24"
                       stroke="currentColor"
                       strokeWidth="2"
-                      className="w-[18px] h-[18px]"
+                      className="w-[18px] h-[18px] sm:w-5 sm:h-5"
                     >
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                     </svg>
-                    Previous
+                    <span className="hidden sm:inline">Previous</span>
                   </button>
-                  <span className="text-[0.85rem] font-semibold text-[var(--color-text-soft)]">
+                  <span className="text-xs sm:text-[0.85rem] font-semibold text-[var(--color-text-soft)]">
                     {currentStep + 1} of 5
                   </span>
                   <button
                     type="button"
                     onClick={nextStep}
-                    className="flex items-center gap-2 px-5 py-3 bg-white border border-[var(--color-border)] rounded-[var(--radius-sm)] font-[var(--font-main)] text-[0.9rem] font-medium text-[var(--color-text)] cursor-pointer transition-all duration-200 hover:bg-[var(--color-primary)] hover:text-white hover:border-[var(--color-primary)]"
+                    className="flex items-center gap-1 sm:gap-2 px-3 sm:px-5 py-3 bg-white border border-[var(--color-border)] rounded-[var(--radius-sm)] font-[var(--font-main)] text-[0.9rem] font-medium text-[var(--color-text)] cursor-pointer transition-all duration-200 hover:bg-[var(--color-primary)] hover:text-white hover:border-[var(--color-primary)]"
                   >
                     {currentStep === totalSteps - 1 ? (
                       <>
-                        Restart
+                        <span className="hidden sm:inline">Restart</span>
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
                           strokeWidth="2"
-                          className="w-[18px] h-[18px]"
+                          className="w-[18px] h-[18px] sm:w-5 sm:h-5"
                         >
                           <path
                             strokeLinecap="round"
@@ -447,14 +447,14 @@ export default function Home() {
                       </>
                     ) : (
                       <>
-                        Next
+                        <span className="hidden sm:inline">Next</span>
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
                           strokeWidth="2"
-                          className="w-[18px] h-[18px]"
+                          className="w-[18px] h-[18px] sm:w-5 sm:h-5"
                         >
                           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                         </svg>
