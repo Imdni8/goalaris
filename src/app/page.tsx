@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 
 export default function Home() {
   const [currentStep, setCurrentStep] = useState(0);
@@ -19,19 +18,19 @@ export default function Home() {
     }
   }, [currentStep, isPaused]);
 
-  const nextStep = () => {
+  const nextStep = useCallback(() => {
     if (currentStep < totalSteps - 1) {
       setCurrentStep(currentStep + 1);
     } else {
       setCurrentStep(0);
     }
-  };
+  }, [currentStep]);
 
-  const prevStep = () => {
+  const prevStep = useCallback(() => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
     }
-  };
+  }, [currentStep]);
 
   const goToStep = (step: number) => {
     setCurrentStep(step);
@@ -54,7 +53,7 @@ export default function Home() {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [currentStep]);
+  }, [nextStep, prevStep]);
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,7 +79,7 @@ export default function Home() {
       step: 3,
       title: 'Log progress as you go',
       description:
-        "Mark tasks complete, track what's in progress, flag blockers. 30 seconds a week keeps your year documented.",
+        "Mark tasks complete, track what's in progress, flag blockers. A few minutes a day keeps your year documented.",
       image: '/3__Log_daily_actions_and_complete_tasks.png',
     },
     {
@@ -94,7 +93,7 @@ export default function Home() {
       step: 5,
       title: 'Generate your review',
       description:
-        'One click creates a first-person self-assessment from your logged work. Edit inline, refine with AI, then copy and paste.',
+        'One click creates a first-person self-assessment from your logged work. Edit inline, refine with AI, then copy and paste or save as drafts for use later.',
       image: '/5__Generate_assessment_for_performance_reviews_ands_edit_at_will.png',
     },
   ];
@@ -210,12 +209,22 @@ export default function Home() {
           }
         }
 
+        .progress-segment .fill {
+          width: 0%;
+          transition: width 0.3s ease;
+        }
+
         .progress-segment.active .fill {
           animation: progressFill var(--story-duration) linear forwards;
         }
 
         .progress-segment.active.paused .fill {
           animation-play-state: paused;
+        }
+
+        .progress-segment.completed .fill {
+          width: 100%;
+          animation: none;
         }
 
         @media (max-width: 600px) {
@@ -274,7 +283,7 @@ export default function Home() {
               className="text-[1.15rem] text-[var(--color-text-soft)] max-w-[520px] mx-auto mb-10"
               style={{ animation: 'slideUp 0.7s ease-out 0.3s both' }}
             >
-              Track your goals and wins throughout the year. When review time comes, you'll have a
+              Track your goals and wins throughout the year. When review time comes, you&apos;ll have a
               complete record of everything you accomplished.
             </p>
 
@@ -316,20 +325,13 @@ export default function Home() {
                   <div
                     key={idx}
                     onClick={() => goToStep(idx)}
-                    className={`flex-1 h-1 bg-[var(--color-border)] rounded-sm overflow-hidden cursor-pointer transition-transform duration-200 hover:scale-y-150 ${
+                    className={`progress-segment flex-1 h-1 bg-[var(--color-border)] rounded-sm overflow-hidden cursor-pointer transition-transform duration-200 hover:scale-y-150 ${
                       idx === currentStep ? 'active' : ''
                     } ${idx < currentStep ? 'completed' : ''} ${
                       idx === currentStep && isPaused ? 'paused' : ''
                     }`}
                   >
-                    <div
-                      className={`fill h-full rounded-sm bg-[var(--color-primary)] ${
-                        idx < currentStep ? 'w-full' : idx === currentStep ? 'w-0' : 'w-0'
-                      }`}
-                      style={{
-                        width: idx < currentStep ? '100%' : idx === currentStep ? '0%' : '0%',
-                      }}
-                    ></div>
+                    <div className="fill h-full rounded-sm bg-[var(--color-primary)]"></div>
                   </div>
                 ))}
               </div>
@@ -356,17 +358,19 @@ export default function Home() {
                       </div>
                     </div>
 
-                    <div className="relative border-t border-[var(--color-border)]">
+                    <div className="relative border-t border-[var(--color-border)] h-[550px] overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={story.image}
                         alt={story.title}
-                        className="w-full h-auto block"
+                        className="w-full h-full object-cover block"
                       />
                       <div className="absolute top-0 left-0 right-0 bottom-0 flex z-[5]">
                         <div className="flex-1 cursor-pointer" onClick={prevStep}></div>
                         <div className="flex-1 cursor-pointer" onClick={nextStep}></div>
                       </div>
                       <button
+                        type="button"
                         className={`pause-btn absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-black/60 border-none rounded-full cursor-pointer flex items-center justify-center opacity-0 hover:opacity-100 transition-all duration-300 backdrop-blur-sm z-10 hover:scale-110 hover:bg-black/75 ${
                           isPaused ? 'opacity-100' : ''
                         }`}
@@ -406,6 +410,7 @@ export default function Home() {
                 {/* Navigation */}
                 <div className="flex justify-between items-center p-5 px-8 border-t border-[var(--color-border)] bg-[var(--color-primary-light)]">
                   <button
+                    type="button"
                     onClick={prevStep}
                     disabled={currentStep === 0}
                     className="flex items-center gap-2 px-5 py-3 bg-white border border-[var(--color-border)] rounded-[var(--radius-sm)] font-[var(--font-main)] text-[0.9rem] font-medium text-[var(--color-text)] cursor-pointer transition-all duration-200 hover:bg-[var(--color-primary)] hover:text-white hover:border-[var(--color-primary)] disabled:opacity-40 disabled:cursor-not-allowed"
@@ -426,6 +431,7 @@ export default function Home() {
                     {currentStep + 1} of 5
                   </span>
                   <button
+                    type="button"
                     onClick={nextStep}
                     className="flex items-center gap-2 px-5 py-3 bg-white border border-[var(--color-border)] rounded-[var(--radius-sm)] font-[var(--font-main)] text-[0.9rem] font-medium text-[var(--color-text)] cursor-pointer transition-all duration-200 hover:bg-[var(--color-primary)] hover:text-white hover:border-[var(--color-primary)]"
                   >
