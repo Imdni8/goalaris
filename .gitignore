@@ -55,8 +55,5 @@ imp_stuff.txt
 
 # internal files
 testing/
-.claude/settings.local.json
-ERROR-HANDLING-IMPLEMENTATION.md
-RATE-LIMITING-IMPLEMENTATION.md
-.gitignore
+docs/
 CLAUDE.md

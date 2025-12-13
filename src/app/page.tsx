@@ -238,14 +238,20 @@ export default function Home() {
             <div className="text-[1.4rem] font-bold tracking-tight text-[var(--color-primary)]">
               goalaris
             </div>
-            <a
-              href="https://docs.google.com/forms/d/e/1FAIpQLSecrDKYly6QRscuAoZ56Qp9kFdEVhLA6gbfZ4WtQKIMx0Oldg/viewform?usp=dialog"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-5 py-[0.65rem] bg-[var(--color-primary)] text-white text-sm font-semibold rounded-[var(--radius-sm)] transition-all duration-200 hover:bg-[var(--color-primary-dark)] hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.3)]"
-            >
-              Join Waitlist
-            </a>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/login"
+                className="px-5 py-[0.65rem] text-[var(--color-text)] text-sm font-semibold rounded-[var(--radius-sm)] transition-all duration-200 hover:bg-[var(--color-primary-light)]"
+              >
+                Login
+              </Link>
+              <Link
+                href="/signup"
+                className="px-5 py-[0.65rem] bg-[var(--color-primary)] text-white text-sm font-semibold rounded-[var(--radius-sm)] transition-all duration-200 hover:bg-[var(--color-primary-dark)] hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.3)]"
+              >
+                Sign Up
+              </Link>
+            </div>
           </div>
         </div>
       </header>
@@ -262,7 +268,7 @@ export default function Home() {
                 className="w-2 h-2 bg-[var(--color-primary)] rounded-full"
                 style={{ animation: 'pulse 2s infinite' }}
               ></span>
-              Beta launching soon
+              Beta launched
             </div>
 
             <h1
@@ -281,8 +287,10 @@ export default function Home() {
               style={{ animation: 'slideUp 0.7s ease-out 0.3s both' }}
             >
               Own your career&apos;s narrative and set yourself up for that promotion
-              and raise with confidence
+              and raise with confidence. Now in closed beta.
             </p>
+
+            
 
             <div
               className="flex justify-center"
@@ -294,7 +302,7 @@ export default function Home() {
                 rel="noopener noreferrer"
                 className="px-8 py-4 bg-[var(--color-primary)] text-white font-[var(--font-main)] text-base font-semibold rounded-[var(--radius-sm)] transition-all duration-200 hover:bg-[var(--color-primary-dark)] hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.3)]"
               >
-                Join waitlist
+                Join Waitlist
               </a>
             </div>
           </div>
@@ -492,7 +500,7 @@ export default function Home() {
 
       <footer className="py-8 text-center text-[0.85rem] text-[var(--color-text-soft)]">
         <div className="container mx-auto px-6 max-w-[1100px]">
-          <p>© 2025 Goalaris</p>
+          <p>© 2025 Goalaris | Made by Tousif</p>
         </div>
       </footer>
     </>

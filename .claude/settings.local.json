@@ -29,7 +29,12 @@
       "Bash(grep:*)",
       "Bash(tree:*)",
       "Bash(mkdir:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(psql:*)",
+      "Bash(lsof:*)",
+      "Bash(git checkout:*)",
+      "Bash(git merge:*)",
+      "Bash(git branch:*)"
     ],
     "deny": [],
     "ask": []
