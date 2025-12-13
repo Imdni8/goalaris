@@ -28,6 +28,27 @@ export default function SignupPage() {
       return;
     }
 
+    // BETA: Check whitelist before allowing signup
+    try {
+      const whitelistCheck = await fetch('/api/auth/check-whitelist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.toLowerCase().trim() }),
+      });
+
+      const { allowed, message } = await whitelistCheck.json();
+
+      if (!allowed) {
+        setError(message || 'This email is not authorized for beta access');
+        setLoading(false);
+        return;
+      }
+    } catch (err) {
+      setError('Unable to verify access. Please try again.');
+      setLoading(false);
+      return;
+    }
+
     try {
       // Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -60,6 +81,13 @@ export default function SignupPage() {
           setError('Failed to create profile');
           return;
         }
+
+        // Mark whitelist entry as used
+        await fetch('/api/auth/mark-signup-complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.toLowerCase().trim() }),
+        });
       }
 
       router.push('/dashboard');
@@ -76,6 +104,16 @@ export default function SignupPage() {
         {/* Logo */}
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-bold text-blue-600">goalaris</h1>
+        </div>
+
+        {/* Beta Access Banner */}
+        <div className="mb-4 rounded-lg bg-blue-50 border border-blue-200 p-3 text-center">
+          <p className="text-sm font-medium text-blue-900">
+            🎉 Beta Access Only
+          </p>
+          <p className="text-xs text-blue-700 mt-1">
+            Limited to invited testers during beta period
+          </p>
         </div>
 
         {/* Signup Card */}
