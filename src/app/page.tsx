@@ -297,7 +297,7 @@ export default function Home() {
               style={{ animation: 'slideUp 0.7s ease-out 0.4s both' }}
             >
               <a
-                href="https://docs.google.com/forms/d/e/1FAIpQLSecrDKYly6QRscuAoZ56Qp9kFdEVhLA6gbfZ4WtQKIMx0Oldg/viewform?usp=dialog"
+                href="/api/waitlist"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-8 py-4 bg-[var(--color-primary)] text-white font-[var(--font-main)] text-base font-semibold rounded-[var(--radius-sm)] transition-all duration-200 hover:bg-[var(--color-primary-dark)] hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.3)]"
@@ -309,7 +309,7 @@ export default function Home() {
         </section>
 
         {/* How it works - Stories Style */}
-        <section className="pt-[152px] pb-20 -mt-[20vh] relative z-10">
+        <section className="pt-12 sm:pt-[152px] pb-8 sm:pb-20 -mt-0 sm:-mt-[20vh] relative z-10">
           <div className="container mx-auto px-4 sm:px-6 max-w-[1100px]">
             <div className="text-center mb-12">
               <span className="inline-block text-xs font-semibold tracking-[0.1em] uppercase text-[var(--color-primary)] mb-3">
@@ -486,7 +486,7 @@ export default function Home() {
                 Join professionals who walk into performance conversations fully prepared.
               </p>
               <a
-                href="https://docs.google.com/forms/d/e/1FAIpQLSecrDKYly6QRscuAoZ56Qp9kFdEVhLA6gbfZ4WtQKIMx0Oldg/viewform?usp=dialog"
+                href="/api/waitlist"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-block px-8 py-4 bg-[var(--color-primary)] text-white font-[var(--font-main)] text-base font-semibold rounded-[var(--radius-sm)] transition-all duration-200 hover:bg-[var(--color-primary-dark)] hover:shadow-[0_4px_12px_rgba(59,130,246,0.3)]"
