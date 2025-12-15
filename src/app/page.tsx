@@ -296,14 +296,12 @@ export default function Home() {
               className="flex justify-center"
               style={{ animation: 'slideUp 0.7s ease-out 0.4s both' }}
             >
-              <a
-                href="/api/waitlist"
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                href="/waitlist"
                 className="px-8 py-4 bg-[var(--color-primary)] text-white font-[var(--font-main)] text-base font-semibold rounded-[var(--radius-sm)] transition-all duration-200 hover:bg-[var(--color-primary-dark)] hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.3)]"
               >
                 Join Waitlist
-              </a>
+              </Link>
             </div>
           </div>
         </section>
@@ -485,14 +483,12 @@ export default function Home() {
               <p className="text-[var(--color-text-soft)] mb-8 max-w-[400px] mx-auto">
                 Join professionals who walk into performance conversations fully prepared.
               </p>
-              <a
-                href="/api/waitlist"
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                href="/waitlist"
                 className="inline-block px-8 py-4 bg-[var(--color-primary)] text-white font-[var(--font-main)] text-base font-semibold rounded-[var(--radius-sm)] transition-all duration-200 hover:bg-[var(--color-primary-dark)] hover:shadow-[0_4px_12px_rgba(59,130,246,0.3)]"
               >
                 Join waitlist
-              </a>
+              </Link>
             </div>
           </div>
         </section>
