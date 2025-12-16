@@ -6,8 +6,15 @@ import Link from 'next/link';
 export default function Home() {
   const [currentStep, setCurrentStep] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [headlineIndex, setHeadlineIndex] = useState(0);
   const totalSteps = 5;
   const storyDuration = 6000; // 6 seconds
+  const headlines = [
+    'Get personalized coaching',
+    'Highlight your impact',
+    'Generate compelling self-assessments',
+    'Catch goals before they slip',
+  ];
 
   useEffect(() => {
     if (!isPaused && currentStep < totalSteps - 1) {
@@ -54,6 +61,15 @@ export default function Home() {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [nextStep, prevStep]);
+
+  // Rotate headlines
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setHeadlineIndex((prev) => (prev + 1) % headlines.length);
+    }, 3500); // 3.5 seconds per headline
+
+    return () => clearInterval(interval);
+  }, [headlines.length]);
 
   const stories = [
     {
@@ -195,6 +211,29 @@ export default function Home() {
           }
         }
 
+        @keyframes textFade {
+          0% {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          10% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+          90% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+          100% {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+        }
+
+        .headline-text {
+          animation: textFade 3.5s ease-in-out;
+        }
+
         @keyframes progressFill {
           from {
             width: 0%;
@@ -259,7 +298,7 @@ export default function Home() {
       <main>
         {/* Hero Section */}
         <section className="py-24 pb-20 text-center h-[85vh] flex flex-col justify-center">
-          <div className="container mx-auto px-6 max-w-[1100px]">
+          <div className="container mx-auto px-6 max-w-[1400px]">
             <div
               className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--color-primary-light)] border border-[var(--color-primary-medium)] rounded-full text-[0.8rem] font-medium text-[var(--color-primary)] mb-6"
               style={{ animation: 'slideUp 0.7s ease-out 0.1s both' }}
@@ -275,10 +314,16 @@ export default function Home() {
               className="text-[clamp(2.5rem,6vw,3.75rem)] font-bold leading-[1.15] tracking-[-0.03em] mb-5"
               style={{ animation: 'slideUp 0.7s ease-out 0.2s both' }}
             >
-              Enter every review
-              <br />
+              <span className="block">
+                <span
+                  key={headlineIndex}
+                  className="headline-text block"
+                >
+                  {headlines[headlineIndex]}
+                </span>
+              </span>
               <span className="bg-gradient-to-r from-[var(--color-primary)] to-[#60a5fa] bg-clip-text text-transparent">
-                fully prepared
+                Ace your performace reviews
               </span>
             </h1>
 
@@ -286,7 +331,7 @@ export default function Home() {
               className="text-[1.15rem] text-[var(--color-text-soft)] max-w-[520px] mx-auto mb-10"
               style={{ animation: 'slideUp 0.7s ease-out 0.3s both' }}
             >
-              Own your career&apos;s narrative and set yourself up for that promotion
+              Own your narrative and set yourself up for that promotion
               and raise with confidence. Now in closed beta.
             </p>
 
@@ -300,7 +345,7 @@ export default function Home() {
                 href="/waitlist"
                 className="px-8 py-4 bg-[var(--color-primary)] text-white font-[var(--font-main)] text-base font-semibold rounded-[var(--radius-sm)] transition-all duration-200 hover:bg-[var(--color-primary-dark)] hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(59,130,246,0.3)]"
               >
-                Join Waitlist
+                Get Access
               </Link>
             </div>
           </div>
@@ -487,7 +532,7 @@ export default function Home() {
                 href="/waitlist"
                 className="inline-block px-8 py-4 bg-[var(--color-primary)] text-white font-[var(--font-main)] text-base font-semibold rounded-[var(--radius-sm)] transition-all duration-200 hover:bg-[var(--color-primary-dark)] hover:shadow-[0_4px_12px_rgba(59,130,246,0.3)]"
               >
-                Join waitlist
+                Get Access
               </Link>
             </div>
           </div>

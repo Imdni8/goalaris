@@ -5,7 +5,7 @@ import { Analytics } from '@vercel/analytics/react';
 
 export const metadata: Metadata = {
   title: 'Goalaris',
-  description: 'AI-powered career goal tracking for enterprise professionals',
+  description: 'Write impactful performance review. Achieve all career goals!',
   keywords: ['goals', 'career', 'AI', 'productivity', 'tracking'],
 };
 

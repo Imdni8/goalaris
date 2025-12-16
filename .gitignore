@@ -57,3 +57,4 @@ imp_stuff.txt
 testing/
 docs/
 CLAUDE.md
+.claude/settings.local.json
