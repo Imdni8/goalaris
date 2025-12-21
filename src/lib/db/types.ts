@@ -119,6 +119,30 @@ export type Database = {
           },
         ]
       }
+      analytics_events: {
+        Row: {
+          created_at: string | null
+          event_name: string
+          id: string
+          properties: Json | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_name: string
+          id?: string
+          properties?: Json | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          event_name?: string
+          id?: string
+          properties?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       assessments: {
         Row: {
           content: string
@@ -168,6 +192,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      beta_whitelist: {
+        Row: {
+          added_at: string | null
+          email: string
+          notes: string | null
+          signup_completed_at: string | null
+        }
+        Insert: {
+          added_at?: string | null
+          email: string
+          notes?: string | null
+          signup_completed_at?: string | null
+        }
+        Update: {
+          added_at?: string | null
+          email?: string
+          notes?: string | null
+          signup_completed_at?: string | null
+        }
+        Relationships: []
       }
       conversations: {
         Row: {

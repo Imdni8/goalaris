@@ -270,6 +270,21 @@ NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
 NEXT_PUBLIC_SUPABASE_ANON_KEY=[from supabase status]
 ```
 
+## Git Workflow
+
+**Branch Strategy:**
+- **IMPORTANT:** Always create a new branch before starting development on new features or fixes
+- This keeps production running without problems while development is in progress
+- Main branch is deployed to production via Vercel auto-deploy
+- Never commit directly to main for feature development
+
+**Workflow:**
+1. Create feature branch: `git checkout -b feature/your-feature-name`
+2. Develop and test locally
+3. Commit changes with descriptive messages
+4. Push branch and create pull request
+5. Merge to main after review/testing
+
 ## Production Deployment
 
 **Platform:** Vercel
