@@ -3,6 +3,7 @@
 /**
  * Activity Heatmap Component
  * Year-view contribution graph showing user activity over 12 months
+ * Matches Figma design: clean, compact layout without day labels
  */
 
 interface ActivityDay {
@@ -26,7 +27,6 @@ export default function ActivityHeatmap({ data }: ActivityHeatmapProps) {
 
   // Build grid data by month (12 months × 7 days × ~4-5 weeks)
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const dayLabels = ['Mon', 'Wed', 'Fri'];
 
   // Create grid: each month contains weeks (columns) with days (rows)
   const monthlyGrids = months.map((monthName, monthIndex) => {
@@ -91,53 +91,43 @@ export default function ActivityHeatmap({ data }: ActivityHeatmapProps) {
   };
 
   return (
-    <div className="w-full overflow-x-auto pb-4">
-      <div className="inline-block min-w-full">
-        {/* Heatmap grid organized by months */}
-        <div className="flex gap-3">
-          {/* Day labels column */}
-          <div className="flex flex-col justify-around text-xs text-gray-500 h-[85px] mr-1">
-            {dayLabels.map((day) => (
-              <div key={day}>{day}</div>
-            ))}
-          </div>
-
-          {/* Month columns with headers */}
-          {monthlyGrids.map((monthGrid, monthIdx) => (
-            <div key={monthIdx} className="flex flex-col">
-              {/* Month header */}
-              <div className="text-xs text-gray-600 font-medium text-left mb-2 h-5">
-                {monthGrid.monthName}
-              </div>
-
-              {/* Week columns for this month */}
-              <div className="flex gap-[3px]">
-                {monthGrid.weeks.map((week, weekIdx) => (
-                  <div key={weekIdx} className="flex flex-col gap-[3px]">
-                    {week.map((day, dayIdx) => {
-                      const isToday = day.date.toDateString() === today.toDateString();
-                      const isFuture = day.date > today;
-
-                      return (
-                        <div
-                          key={dayIdx}
-                          className={`
-                            w-[10px] h-[10px] rounded-sm
-                            ${getColor(day.count, day.inMonth, isFuture)}
-                            ${isToday ? 'ring-2 ring-blue-500' : ''}
-                            hover:ring-2 hover:ring-gray-400 cursor-pointer
-                            transition-all duration-150
-                          `}
-                          title={`${formatDate(day.date)}: ${day.count} ${day.count === 1 ? 'action' : 'actions'}`}
-                        />
-                      );
-                    })}
-                  </div>
-                ))}
-              </div>
+    <div className="w-full overflow-x-auto">
+      <div className="flex gap-2">
+        {/* Month columns with headers */}
+        {monthlyGrids.map((monthGrid, monthIdx) => (
+          <div key={monthIdx} className="flex flex-1 min-w-0 flex-col gap-2">
+            {/* Month header */}
+            <div className="text-xs text-gray-600 font-medium h-5">
+              {monthGrid.monthName}
             </div>
-          ))}
-        </div>
+
+            {/* Week columns for this month */}
+            <div className="flex justify-between">
+              {monthGrid.weeks.map((week, weekIdx) => (
+                <div key={weekIdx} className="flex flex-col gap-[3px]">
+                  {week.map((day, dayIdx) => {
+                    const isToday = day.date.toDateString() === today.toDateString();
+                    const isFuture = day.date > today;
+
+                    return (
+                      <div
+                        key={dayIdx}
+                        className={`
+                          size-[10px] rounded-sm
+                          ${getColor(day.count, day.inMonth, isFuture)}
+                          ${isToday ? 'ring-2 ring-blue-500' : ''}
+                          hover:ring-2 hover:ring-gray-400 cursor-pointer
+                          transition-all duration-150
+                        `}
+                        title={`${formatDate(day.date)}: ${day.count} ${day.count === 1 ? 'action' : 'actions'}`}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
