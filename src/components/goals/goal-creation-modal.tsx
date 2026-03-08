@@ -1320,26 +1320,28 @@ export default function GoalCreationModal({ open, onClose, userProfile }: GoalCr
           </div>
 
           {/* Input Area */}
-          <div
-            style={{
-              padding: 14,
-              borderTop: '1px solid #ece5dc',
-              background: '#faf7f3',
-              flexShrink: 0,
-            }}
-          >
-            <InputArea
-              step={showSuggestions ? null : currentStep}
-              isShowingSuggestions={showSuggestions}
-              isDone={isDone}
-              onOptionSelect={handleOptionSelect}
-              onTextSend={handleTextSend}
-              selectedMultiOptions={selectedMultiOptions}
-              onMultiSelectSubmit={handleMultiSelectSubmit}
-              multiSelectMode={multiSelectMode}
-              onModeChange={setMultiSelectMode}
-            />
-          </div>
+          {!isDone && (
+            <div
+              style={{
+                padding: 14,
+                borderTop: '1px solid #ece5dc',
+                background: '#faf7f3',
+                flexShrink: 0,
+              }}
+            >
+              <InputArea
+                step={showSuggestions ? null : currentStep}
+                isShowingSuggestions={showSuggestions}
+                isDone={isDone}
+                onOptionSelect={handleOptionSelect}
+                onTextSend={handleTextSend}
+                selectedMultiOptions={selectedMultiOptions}
+                onMultiSelectSubmit={handleMultiSelectSubmit}
+                multiSelectMode={multiSelectMode}
+                onModeChange={setMultiSelectMode}
+              />
+            </div>
+          )}
         </div>
       </div>
     </>
