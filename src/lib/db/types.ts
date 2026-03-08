@@ -321,29 +321,44 @@ export type Database = {
       profiles: {
         Row: {
           assessment_cycle: string | null
+          career_goal: string | null
           company: string | null
           created_at: string | null
           full_name: string | null
           id: string
           job_title: string | null
+          key_skills: string[] | null
+          onboarding_completed: boolean | null
+          review_cycle_timing: string | null
+          team: string | null
           updated_at: string | null
         }
         Insert: {
           assessment_cycle?: string | null
+          career_goal?: string | null
           company?: string | null
           created_at?: string | null
           full_name?: string | null
           id: string
           job_title?: string | null
+          key_skills?: string[] | null
+          onboarding_completed?: boolean | null
+          review_cycle_timing?: string | null
+          team?: string | null
           updated_at?: string | null
         }
         Update: {
           assessment_cycle?: string | null
+          career_goal?: string | null
           company?: string | null
           created_at?: string | null
           full_name?: string | null
           id?: string
           job_title?: string | null
+          key_skills?: string[] | null
+          onboarding_completed?: boolean | null
+          review_cycle_timing?: string | null
+          team?: string | null
           updated_at?: string | null
         }
         Relationships: []

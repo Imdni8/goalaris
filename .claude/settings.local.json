@@ -38,7 +38,9 @@
       "Bash(git worktree:*)",
       "mcp__figma-remote-mcp__get_design_context",
       "mcp__figma-remote-mcp__get_screenshot",
-      "Bash(pkill -f \"next dev\")"
+      "Bash(pkill -f \"next dev\")",
+      "Bash(docker volume ls --filter label=com.supabase.cli.project=goalaris -q)",
+      "Bash(xargs -r docker volume rm)"
     ],
     "deny": [],
     "ask": []

@@ -60,12 +60,21 @@ export function SettingsForm({ initialProfile }: { initialProfile: Profile }) {
     key_skills: initialProfile.key_skills || [],
   });
 
+  // Check if form has changes
+  const hasChanges =
+    formData.full_name !== (initialProfile.full_name || '') ||
+    formData.job_title !== (initialProfile.job_title || '') ||
+    formData.team !== (initialProfile.team || '') ||
+    formData.company !== (initialProfile.company || '') ||
+    formData.review_cycle_timing !== (initialProfile.review_cycle_timing || '') ||
+    formData.career_goal !== (initialProfile.career_goal || '') ||
+    JSON.stringify(formData.key_skills) !== JSON.stringify(initialProfile.key_skills || []);
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value,
     }));
-    setSaved(false);
   };
 
   const handleAddSkill = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -76,7 +85,6 @@ export function SettingsForm({ initialProfile }: { initialProfile: Profile }) {
         key_skills: [...prev.key_skills, keySkillInput.trim()],
       }));
       setKeySkillInput('');
-      setSaved(false);
     }
   };
 
@@ -85,7 +93,6 @@ export function SettingsForm({ initialProfile }: { initialProfile: Profile }) {
       ...prev,
       key_skills: prev.key_skills.filter((_, i) => i !== index),
     }));
-    setSaved(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -234,7 +241,7 @@ export function SettingsForm({ initialProfile }: { initialProfile: Profile }) {
         </div>
       </div>
 
-      <Button type="submit" disabled={loading} className="w-full">
+      <Button type="submit" disabled={loading || !hasChanges} className="w-full">
         {loading ? 'Saving...' : 'Save Changes'}
       </Button>
     </form>

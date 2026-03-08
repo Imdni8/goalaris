@@ -23,7 +23,6 @@ export default async function DashboardNav() {
     { href: '/dashboard/goals', label: 'Goals' },
     { href: '/dashboard/self-assessment', label: 'Assessments' },
     { href: '/dashboard/coach', label: 'Coach' },
-    { href: '/dashboard/settings', label: 'Settings' },
   ];
 
   // Get user initials for avatar

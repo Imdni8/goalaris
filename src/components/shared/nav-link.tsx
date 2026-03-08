@@ -14,9 +14,9 @@ export default function NavLink({ href, label }: NavLinkProps) {
   const isActive = href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(href);
 
   return (
-    <Link href={href}>
+    <Link href={href} className="flex flex-col justify-center h-16">
       <span
-        className={`pb-4 text-sm font-medium transition-colors border-b-2 block ${
+        className={`text-sm font-medium transition-colors border-b-2 ${
           isActive
             ? 'border-blue-600 text-blue-600'
             : 'border-transparent text-gray-600 hover:text-gray-900'

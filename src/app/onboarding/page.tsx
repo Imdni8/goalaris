@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 interface OnboardingData {
-  full_name: string;
   job_title: string;
   team: string;
   company: string;
@@ -44,12 +43,6 @@ const REVIEW_CYCLE_OPTIONS = [
 ];
 
 const steps = [
-  {
-    title: 'What\'s your name?',
-    field: 'full_name',
-    type: 'text',
-    placeholder: 'e.g., Sarah Chen',
-  },
   {
     title: 'What\'s your current role?',
     field: 'job_title',
@@ -90,7 +83,6 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<OnboardingData>({
-    full_name: '',
     job_title: '',
     team: '',
     company: '',
@@ -152,7 +144,6 @@ export default function OnboardingPage() {
         .from('profiles')
         .upsert({
           id: user.id,
-          full_name: data.full_name,
           job_title: data.job_title,
           team: data.team,
           company: data.company,
@@ -162,7 +153,14 @@ export default function OnboardingPage() {
           onboarding_completed: true,
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
+
+      // Force a refresh to get updated profile data in dashboard layout
+      await new Promise(resolve => setTimeout(resolve, 300));
+      router.refresh();
       router.push('/dashboard');
     } catch (error) {
       console.error('Onboarding error:', error);
@@ -281,7 +279,7 @@ export default function OnboardingPage() {
             {isLastStep ? (
               <Button
                 onClick={handleSubmit}
-                disabled={loading || !data.full_name || !data.job_title || !data.company || !data.team || !data.review_cycle_timing}
+                disabled={loading || !data.job_title || !data.company || !data.team || !data.review_cycle_timing}
                 className="flex-1"
               >
                 {loading ? 'Setting up...' : 'Complete'}
