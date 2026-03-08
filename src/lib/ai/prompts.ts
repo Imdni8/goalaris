@@ -236,15 +236,31 @@ interface HealthMetrics {
   }>;
 }
 
-export const COACH_SYSTEM_PROMPT = (context: UserContext, insights?: HealthMetrics) => {
+export const COACH_SYSTEM_PROMPT = (context: any, insights?: HealthMetrics) => {
   const hasGoals = context.goals && context.goals.length > 0;
   const hasLogs = context.recentActionLogs && context.recentActionLogs.length > 0;
+  const hasProfile = context.profile && (context.profile.full_name || context.profile.job_title);
 
   let contextSection = '';
 
+  // Add profile context if available
+  if (hasProfile) {
+    const profile = context.profile as any;
+    contextSection += '\n### User\'s Professional Profile:\n';
+    if (profile.full_name) contextSection += `- Name: ${profile.full_name}\n`;
+    if (profile.job_title) contextSection += `- Current Role: ${profile.job_title}\n`;
+    if (profile.team) contextSection += `- Team: ${profile.team}\n`;
+    if (profile.company) contextSection += `- Company: ${profile.company}\n`;
+    if (profile.review_cycle_timing) contextSection += `- Review Cycle: ${profile.review_cycle_timing}\n`;
+    if (profile.career_goal) contextSection += `- Career Goal: ${profile.career_goal}\n`;
+    if (profile.key_skills && Array.isArray(profile.key_skills) && profile.key_skills.length > 0) {
+      contextSection += `- Developing Skills: ${profile.key_skills.join(', ')}\n`;
+    }
+  }
+
   if (hasGoals) {
     contextSection += '\n### User\'s Current Goals:\n';
-    context.goals!.forEach((goal) => {
+    (context.goals as any[]).forEach((goal: any) => {
       contextSection += `\n**${goal.title}** (${goal.status})\n`;
       if (goal.description) contextSection += `- Description: ${goal.description}\n`;
       if (goal.specific) contextSection += `- Specific: ${goal.specific}\n`;
@@ -252,7 +268,7 @@ export const COACH_SYSTEM_PROMPT = (context: UserContext, insights?: HealthMetri
 
       if (goal.tasks && goal.tasks.length > 0) {
         contextSection += `- Tasks (${goal.tasks.length}):\n`;
-        goal.tasks.forEach(task => {
+        goal.tasks.forEach((task: any) => {
           contextSection += `  - ${task.title} [${task.status}]`;
           if (task.blocker_description) {
             contextSection += ` - BLOCKER: ${task.blocker_description}`;
@@ -265,7 +281,7 @@ export const COACH_SYSTEM_PROMPT = (context: UserContext, insights?: HealthMetri
 
   if (hasLogs) {
     contextSection += '\n### Recent Progress Logs (Last 30 Days):\n';
-    context.recentActionLogs!.forEach((log) => {
+    (context.recentActionLogs as any[]).forEach((log: any) => {
       contextSection += `- ${log.title}`;
       if (log.description) contextSection += `: ${log.description}`;
       if (log.blocker_description) {
@@ -340,7 +356,7 @@ export const COACH_SYSTEM_PROMPT = (context: UserContext, insights?: HealthMetri
 
   return `You are a supportive and insightful career coach for working professionals. You help users with:
 
-1. **Coaching & Guidance**: Provide advice on achieving goals, overcoming blockers, managing progress, and professional development
+1. **Coaching & Guidance**: Provide advice on achieving goals, overcoming blockers, managing progress, and professional development. Consider their career aspirations and help them align their work with their long-term goals.
 2. **Self-Assessment Generation**: Help users prepare compelling self-assessments for performance reviews by summarizing their achievements and impact
 
 **Your User's Context:**

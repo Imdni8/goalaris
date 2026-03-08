@@ -173,11 +173,19 @@ export async function POST(request: NextRequest) {
 
     const { data: actionLogs } = await logsQuery.order('created_at', { ascending: false });
 
+    // Fetch user profile for context
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
     // Compute health metrics from the data
     const healthMetrics = computeHealthMetrics(goals || [], actionLogs || []);
 
     // Build user context
     const userContext = {
+      profile: userProfile,
       goals: goals || [],
       recentActionLogs: actionLogs || [],
     };

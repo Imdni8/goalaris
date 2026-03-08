@@ -1,0 +1,260 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+
+interface OnboardingData {
+  full_name: string;
+  job_title: string;
+  team: string;
+  company: string;
+  review_cycle_timing: string;
+  career_goal: string;
+  key_skills: string[];
+}
+
+const steps = [
+  {
+    title: 'What\'s your name?',
+    field: 'full_name',
+    type: 'text',
+    placeholder: 'e.g., Sarah Chen',
+  },
+  {
+    title: 'What\'s your current role?',
+    field: 'job_title',
+    type: 'text',
+    placeholder: 'e.g., Senior Software Engineer',
+  },
+  {
+    title: 'What team are you on?',
+    field: 'team',
+    type: 'text',
+    placeholder: 'e.g., Backend, Product, Design',
+  },
+  {
+    title: 'What company do you work for?',
+    field: 'company',
+    type: 'text',
+    placeholder: 'e.g., Acme Corp',
+  },
+  {
+    title: 'When is your review cycle?',
+    field: 'review_cycle_timing',
+    type: 'text',
+    placeholder: 'e.g., Q4 annual, mid-year check-in',
+  },
+  {
+    title: 'Where do you want to be in 1-2 years?',
+    field: 'career_goal',
+    type: 'textarea',
+    placeholder: 'e.g., Get promoted to Staff Engineer, move into people management',
+  },
+];
+
+export default function OnboardingPage() {
+  const router = useRouter();
+  const supabase = createClient();
+  const [step, setStep] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<OnboardingData>({
+    full_name: '',
+    job_title: '',
+    team: '',
+    company: '',
+    review_cycle_timing: '',
+    career_goal: '',
+    key_skills: [],
+  });
+  const [keySkillInput, setKeySkillInput] = useState('');
+
+  const currentStep = steps[step];
+
+  const handleInputChange = (value: string) => {
+    setData(prev => ({
+      ...prev,
+      [currentStep.field]: value,
+    }));
+  };
+
+  const handleAddSkill = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && keySkillInput.trim()) {
+      e.preventDefault();
+      setData(prev => ({
+        ...prev,
+        key_skills: [...prev.key_skills, keySkillInput.trim()],
+      }));
+      setKeySkillInput('');
+    }
+  };
+
+  const handleRemoveSkill = (index: number) => {
+    setData(prev => ({
+      ...prev,
+      key_skills: prev.key_skills.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleNext = () => {
+    if (step < steps.length - 1) {
+      setStep(step + 1);
+    }
+  };
+
+  const handlePrev = () => {
+    if (step > 0) {
+      setStep(step - 1);
+    }
+  };
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/login');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          full_name: data.full_name,
+          job_title: data.job_title,
+          team: data.team,
+          company: data.company,
+          review_cycle_timing: data.review_cycle_timing,
+          career_goal: data.career_goal,
+          key_skills: data.key_skills,
+          onboarding_completed: true,
+        });
+
+      if (error) throw error;
+      router.push('/dashboard');
+    } catch (error) {
+      console.error('Onboarding error:', error);
+      alert('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isLastStep = step === steps.length - 1;
+  const currentValue = data[currentStep.field as keyof Omit<OnboardingData, 'key_skills'>];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Progress dots */}
+        <div className="flex gap-2 mb-8 justify-center">
+          {steps.map((_, i) => (
+            <div
+              key={i}
+              className={`h-2 rounded-full transition-all ${
+                i < step ? 'bg-blue-600 w-6' : i === step ? 'bg-blue-600 w-8' : 'bg-slate-300 w-2'
+              }`}
+            />
+          ))}
+        </div>
+
+        <div className="bg-white rounded-lg shadow-lg p-8">
+          <h1 className="text-2xl font-bold mb-6 text-slate-900">{currentStep.title}</h1>
+
+          {/* Regular text input */}
+          {currentStep.field !== 'career_goal' && (
+            <Input
+              type={currentStep.type}
+              value={currentValue as string}
+              onChange={e => handleInputChange(e.target.value)}
+              placeholder={currentStep.placeholder}
+              className="mb-6"
+              autoFocus
+            />
+          )}
+
+          {/* Career goal textarea */}
+          {currentStep.field === 'career_goal' && (
+            <textarea
+              value={currentValue as string}
+              onChange={e => handleInputChange(e.target.value)}
+              placeholder={currentStep.placeholder}
+              className="w-full p-3 border border-slate-300 rounded-md mb-6 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              rows={4}
+              autoFocus
+            />
+          )}
+
+          {/* Key skills input - shown on last step */}
+          {isLastStep && (
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                What skills do you want to develop? (optional)
+              </label>
+              <Input
+                type="text"
+                value={keySkillInput}
+                onChange={e => setKeySkillInput(e.target.value)}
+                onKeyDown={handleAddSkill}
+                placeholder="Type a skill and press Enter"
+                className="mb-3"
+              />
+              <div className="flex flex-wrap gap-2">
+                {data.key_skills.map((skill, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm"
+                  >
+                    {skill}
+                    <button
+                      onClick={() => handleRemoveSkill(i)}
+                      className="text-blue-700 hover:text-blue-900"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Navigation buttons */}
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={handlePrev}
+              disabled={step === 0}
+              className="flex-1"
+            >
+              Back
+            </Button>
+            {isLastStep ? (
+              <Button
+                onClick={handleSubmit}
+                disabled={loading || !data.full_name || !data.job_title || !data.company}
+                className="flex-1"
+              >
+                {loading ? 'Setting up...' : 'Complete'}
+              </Button>
+            ) : (
+              <Button
+                onClick={handleNext}
+                disabled={!currentValue}
+                className="flex-1"
+              >
+                Next
+              </Button>
+            )}
+          </div>
+        </div>
+
+        <p className="text-center text-slate-600 text-sm mt-6">
+          Step {step + 1} of {steps.length}
+        </p>
+      </div>
+    </div>
+  );
+}
