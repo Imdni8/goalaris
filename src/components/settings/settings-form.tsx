@@ -17,6 +17,33 @@ interface Profile {
   key_skills: string[] | null;
 }
 
+const TEAM_OPTIONS = [
+  'Engineering',
+  'Product',
+  'Design',
+  'Marketing',
+  'Sales',
+  'Operations',
+  'HR',
+  'Finance',
+  'Customer Success',
+  'Data',
+  'Infrastructure',
+  'Security',
+  'Other',
+];
+
+const REVIEW_CYCLE_OPTIONS = [
+  'Q1 (Jan-Mar)',
+  'Q2 (Apr-Jun)',
+  'Q3 (Jul-Sep)',
+  'Q4 (Oct-Dec)',
+  'Semi-annual (Mid-year & Annual)',
+  'Annual only',
+  'Quarterly',
+  'Monthly',
+];
+
 export function SettingsForm({ initialProfile }: { initialProfile: Profile }) {
   const router = useRouter();
   const supabase = createClient();
@@ -107,6 +134,7 @@ export function SettingsForm({ initialProfile }: { initialProfile: Profile }) {
           value={formData.full_name}
           onChange={e => handleInputChange('full_name', e.target.value)}
           placeholder="Your name"
+          className="bg-white text-slate-900"
         />
       </div>
 
@@ -117,17 +145,25 @@ export function SettingsForm({ initialProfile }: { initialProfile: Profile }) {
           value={formData.job_title}
           onChange={e => handleInputChange('job_title', e.target.value)}
           placeholder="e.g., Senior Software Engineer"
+          className="bg-white text-slate-900"
         />
       </div>
 
       <div>
         <label className="block text-sm font-medium text-slate-700 mb-2">Team / Department</label>
-        <Input
-          type="text"
+        <select
           value={formData.team}
           onChange={e => handleInputChange('team', e.target.value)}
-          placeholder="e.g., Backend, Product, Design"
-        />
+          className="w-full p-3 border border-slate-300 rounded-md bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          aria-label="Team / Department"
+        >
+          <option value="">Select a team</option>
+          {TEAM_OPTIONS.map(opt => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div>
@@ -137,17 +173,25 @@ export function SettingsForm({ initialProfile }: { initialProfile: Profile }) {
           value={formData.company}
           onChange={e => handleInputChange('company', e.target.value)}
           placeholder="Your company name"
+          className="bg-white text-slate-900"
         />
       </div>
 
       <div>
         <label className="block text-sm font-medium text-slate-700 mb-2">Review Cycle Timing</label>
-        <Input
-          type="text"
+        <select
           value={formData.review_cycle_timing}
           onChange={e => handleInputChange('review_cycle_timing', e.target.value)}
-          placeholder="e.g., Q4 annual, mid-year check-in"
-        />
+          className="w-full p-3 border border-slate-300 rounded-md bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          aria-label="Review Cycle Timing"
+        >
+          <option value="">Select your review cycle</option>
+          {REVIEW_CYCLE_OPTIONS.map(opt => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div>
@@ -156,7 +200,7 @@ export function SettingsForm({ initialProfile }: { initialProfile: Profile }) {
           value={formData.career_goal}
           onChange={e => handleInputChange('career_goal', e.target.value)}
           placeholder="Where do you want to be in 1-2 years?"
-          className="w-full p-3 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full p-3 border border-slate-300 rounded-md bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
           rows={4}
         />
       </div>
@@ -169,7 +213,7 @@ export function SettingsForm({ initialProfile }: { initialProfile: Profile }) {
           onChange={e => setKeySkillInput(e.target.value)}
           onKeyDown={handleAddSkill}
           placeholder="Type a skill and press Enter"
-          className="mb-3"
+          className="mb-3 bg-white text-slate-900"
         />
         <div className="flex flex-wrap gap-2">
           {formData.key_skills.map((skill, i) => (

@@ -16,6 +16,33 @@ interface OnboardingData {
   key_skills: string[];
 }
 
+const TEAM_OPTIONS = [
+  'Engineering',
+  'Product',
+  'Design',
+  'Marketing',
+  'Sales',
+  'Operations',
+  'HR',
+  'Finance',
+  'Customer Success',
+  'Data',
+  'Infrastructure',
+  'Security',
+  'Other',
+];
+
+const REVIEW_CYCLE_OPTIONS = [
+  'Q1 (Jan-Mar)',
+  'Q2 (Apr-Jun)',
+  'Q3 (Jul-Sep)',
+  'Q4 (Oct-Dec)',
+  'Semi-annual (Mid-year & Annual)',
+  'Annual only',
+  'Quarterly',
+  'Monthly',
+];
+
 const steps = [
   {
     title: 'What\'s your name?',
@@ -32,8 +59,9 @@ const steps = [
   {
     title: 'What team are you on?',
     field: 'team',
-    type: 'text',
-    placeholder: 'e.g., Backend, Product, Design',
+    type: 'select',
+    placeholder: 'Select a team',
+    options: TEAM_OPTIONS,
   },
   {
     title: 'What company do you work for?',
@@ -44,8 +72,9 @@ const steps = [
   {
     title: 'When is your review cycle?',
     field: 'review_cycle_timing',
-    type: 'text',
-    placeholder: 'e.g., Q4 annual, mid-year check-in',
+    type: 'select',
+    placeholder: 'Select your review cycle',
+    options: REVIEW_CYCLE_OPTIONS,
   },
   {
     title: 'Where do you want to be in 1-2 years?',
@@ -164,25 +193,43 @@ export default function OnboardingPage() {
         <div className="bg-white rounded-lg shadow-lg p-8">
           <h1 className="text-2xl font-bold mb-6 text-slate-900">{currentStep.title}</h1>
 
-          {/* Regular text input */}
-          {currentStep.field !== 'career_goal' && (
+          {/* Text input */}
+          {currentStep.type === 'text' && (
             <Input
-              type={currentStep.type}
+              type="text"
               value={currentValue as string}
               onChange={e => handleInputChange(e.target.value)}
               placeholder={currentStep.placeholder}
-              className="mb-6"
+              className="mb-6 bg-white text-slate-900 placeholder-slate-400"
               autoFocus
             />
           )}
 
-          {/* Career goal textarea */}
-          {currentStep.field === 'career_goal' && (
+          {/* Select dropdown */}
+          {currentStep.type === 'select' && (
+            <select
+              value={currentValue as string}
+              onChange={e => handleInputChange(e.target.value)}
+              className="w-full p-3 border border-slate-300 rounded-md mb-6 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label={currentStep.title}
+              autoFocus
+            >
+              <option value="">{currentStep.placeholder}</option>
+              {(currentStep as any).options?.map((opt: string) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {/* Textarea */}
+          {currentStep.type === 'textarea' && (
             <textarea
               value={currentValue as string}
               onChange={e => handleInputChange(e.target.value)}
               placeholder={currentStep.placeholder}
-              className="w-full p-3 border border-slate-300 rounded-md mb-6 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border border-slate-300 rounded-md mb-6 bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
               rows={4}
               autoFocus
             />
@@ -200,7 +247,7 @@ export default function OnboardingPage() {
                 onChange={e => setKeySkillInput(e.target.value)}
                 onKeyDown={handleAddSkill}
                 placeholder="Type a skill and press Enter"
-                className="mb-3"
+                className="mb-3 bg-white text-slate-900 placeholder-slate-400"
               />
               <div className="flex flex-wrap gap-2">
                 {data.key_skills.map((skill, i) => (
@@ -234,7 +281,7 @@ export default function OnboardingPage() {
             {isLastStep ? (
               <Button
                 onClick={handleSubmit}
-                disabled={loading || !data.full_name || !data.job_title || !data.company}
+                disabled={loading || !data.full_name || !data.job_title || !data.company || !data.team || !data.review_cycle_timing}
                 className="flex-1"
               >
                 {loading ? 'Setting up...' : 'Complete'}
