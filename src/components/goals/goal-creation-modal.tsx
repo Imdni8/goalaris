@@ -1000,15 +1000,32 @@ export default function GoalCreationModal({ open, onClose, userProfile }: GoalCr
 
     // Show coach is thinking
     setIsLoading(true);
+    const feedbackText = refinementText;
     setRefinementText('');
     setCurrentStep(null as any);
 
     try {
-      // Call refinement API (could enhance goal draft based on feedback)
-      // For now, we'll just show the feedback was received
-      await new Promise((resolve) => setTimeout(resolve, 800)); // Simulate thinking
+      // Call refinement API to actually improve the goal draft
+      const response = await fetch('/api/ai/refine-goal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          goalDraft,
+          refinementFeedback: feedbackText,
+        }),
+      });
 
-      addCoachMessage("Got it! I've taken your feedback into account. The draft looks solid — let me know when you're ready to approve.", () => {
+      if (!response.ok) {
+        const data = await response.json();
+        setError(data.error || 'Failed to refine goal');
+        setIsLoading(false);
+        return;
+      }
+
+      const data = await response.json();
+      setGoalDraft(data.smartGoal);
+
+      addCoachMessage("Done! I've refined your goal based on your feedback. Take another look:", () => {
         setIsLoading(false);
         setCurrentStep('draft' as any);
       });
