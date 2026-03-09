@@ -503,71 +503,41 @@ const InputArea = ({
           })}
 
           {/* Action buttons */}
-          <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-            {selectedMultiOptions.length > 0 && (
-              <button
-                onClick={onMultiSelectSubmit}
-                style={{
-                  flex: 1,
-                  padding: '11px 16px',
-                  background: '#2563eb',
-                  border: '1.5px solid #2563eb',
-                  borderRadius: 10,
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: '#fff',
-                  fontFamily: 'inherit',
-                  transition: 'all 0.18s ease',
-                  animation: `slideUp 0.25s cubic-bezier(0.16,1,0.3,1) ${stepConfig.options.length * 0.04}s both`,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#1d4ed8';
-                  e.currentTarget.style.borderColor = '#1d4ed8';
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(37,99,235,0.2)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = '#2563eb';
-                  e.currentTarget.style.borderColor = '#2563eb';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
-              >
-                Continue
-              </button>
-            )}
-
+          {selectedMultiOptions.length > 0 && (
             <button
-              onClick={() => onModeChange?.('text')}
+              onClick={onMultiSelectSubmit}
               style={{
-                flex: selectedMultiOptions.length > 0 ? 0.8 : 1,
+                width: '100%',
                 padding: '11px 16px',
-                background: 'transparent',
-                border: '1.5px dashed #d9cfc2',
+                background: '#2563eb',
+                border: '1.5px solid #2563eb',
                 borderRadius: 10,
                 cursor: 'pointer',
                 textAlign: 'center',
                 fontSize: 13,
-                fontWeight: 500,
-                color: '#8a7a6a',
+                fontWeight: 600,
+                color: '#fff',
                 fontFamily: 'inherit',
                 transition: 'all 0.18s ease',
                 animation: `slideUp 0.25s cubic-bezier(0.16,1,0.3,1) ${stepConfig.options.length * 0.04}s both`,
+                marginTop: 4,
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#c4a88a';
-                e.currentTarget.style.background = '#faf7f3';
+                e.currentTarget.style.background = '#1d4ed8';
+                e.currentTarget.style.borderColor = '#1d4ed8';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(37,99,235,0.2)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#d9cfc2';
-                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.background = '#2563eb';
+                e.currentTarget.style.borderColor = '#2563eb';
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
               }}
             >
-              {selectedMultiOptions.length > 0 ? 'Add custom' : 'Type my own'}
+              Continue
             </button>
-          </div>
+          )}
         </div>
       );
     }
