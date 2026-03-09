@@ -503,7 +503,7 @@ const InputArea = ({
           })}
 
           {/* Action buttons */}
-          {selectedMultiOptions.length > 0 && (
+          {selectedMultiOptions.length > 0 ? (
             <button
               onClick={onMultiSelectSubmit}
               style={{
@@ -536,6 +536,36 @@ const InputArea = ({
               }}
             >
               Continue
+            </button>
+          ) : (
+            <button
+              onClick={() => onModeChange?.('text')}
+              style={{
+                width: '100%',
+                padding: '11px 16px',
+                background: 'transparent',
+                border: '1.5px dashed #d9cfc2',
+                borderRadius: 10,
+                cursor: 'pointer',
+                textAlign: 'center',
+                fontSize: 13,
+                fontWeight: 500,
+                color: '#8a7a6a',
+                fontFamily: 'inherit',
+                transition: 'all 0.18s ease',
+                animation: `slideUp 0.25s cubic-bezier(0.16,1,0.3,1) ${stepConfig.options.length * 0.04}s both`,
+                marginTop: 4,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#c4a88a';
+                e.currentTarget.style.background = '#faf7f3';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = '#d9cfc2';
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              Type my own
             </button>
           )}
         </div>
