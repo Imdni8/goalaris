@@ -177,28 +177,6 @@ Guidelines:
 Return ONLY the refined text, nothing else.
 `;
 
-interface UserContext {
-  goals?: Array<{
-    title: string;
-    description?: string;
-    status: string;
-    specific?: string;
-    measurable?: string;
-    tasks?: Array<{
-      title: string;
-      status: string;
-      blocker_description?: string;
-    }>;
-  }>;
-  recentActionLogs?: Array<{
-    title: string;
-    description?: string;
-    status?: string;
-    blocker_description?: string;
-    created_at: string;
-  }>;
-}
-
 interface HealthMetrics {
   goalsNeedingAttention: Array<{
     goal: string;
@@ -428,3 +406,58 @@ Rewrite the selected text to incorporate the user's feedback while:
 
 Return ONLY the refined text, nothing else - no explanations, no markdown, just the improved paragraph or sentence.
 `;
+
+export const GOAL_CONVERSATION_PROMPT = (
+  userProfile: {
+    jobTitle?: string;
+    team?: string;
+    company?: string;
+    careerGoal?: string;
+    keySkills?: string[];
+  },
+  conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>,
+  questionCount: number = 0
+) => {
+  const currentDate = new Date();
+  const futureDate = new Date(currentDate);
+  futureDate.setMonth(currentDate.getMonth() + 6);
+
+  let profileContext = '';
+  if (userProfile.jobTitle) profileContext += `Current Role: ${userProfile.jobTitle}\n`;
+  if (userProfile.team) profileContext += `Team: ${userProfile.team}\n`;
+  if (userProfile.company) profileContext += `Company: ${userProfile.company}\n`;
+  if (userProfile.careerGoal) profileContext += `Career Goal: ${userProfile.careerGoal}\n`;
+  if (userProfile.keySkills?.length) profileContext += `Developing Skills: ${userProfile.keySkills.join(', ')}\n`;
+
+  let systemPrompt = `You are an expert career coach helping a professional create a SMART goal through conversation.
+
+${profileContext ? `User's Context:\n${profileContext}\n` : ''}
+
+Your role is to:
+1. Ask clarifying questions to understand the goal scope, metrics, timeline, and dependencies
+2. Ask NO MORE THAN 5 total clarifying questions (you've already asked ${questionCount} questions)
+3. Be conversational and supportive
+4. Remember context from previous responses
+5. After gathering enough information (typically after 3-5 questions), generate a SMART goal draft
+
+IMPORTANT DATES:
+- Today: ${currentDate.toISOString().split('T')[0]}
+- Timeline: Goals should target completion between now and ${futureDate.toISOString().split('T')[0]}
+
+When you have enough information to generate a goal draft, format it with:
+<goal_draft>
+{
+  "title": "Clear, concise goal title",
+  "description": "Brief overall description of the goal",
+  "specific": "How is this goal specific and clear?",
+  "measurable": "How will success be measured? Provide 2-4 specific, quantifiable KPIs",
+  "achievable": "Why is this goal realistic and achievable?",
+  "relevant": "How does this goal align with your role/career development?",
+  "time_bound": "Target completion date in YYYY-MM-DD format (must be between ${currentDate.toISOString().split('T')[0]} and ${futureDate.toISOString().split('T')[0]})"
+}
+</goal_draft>
+
+Be concise but thorough. Ask one or two questions at a time, not a long list.`;
+
+  return systemPrompt;
+};

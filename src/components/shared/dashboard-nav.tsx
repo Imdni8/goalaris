@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { Button } from '@/components/ui/button';
 import UserProfileMenu from './user-profile-menu';
 import NavLink from './nav-link';
+import CreateGoalButton from './create-goal-button';
 
 export default async function DashboardNav() {
   const supabase = await createClient();
@@ -54,11 +54,7 @@ export default async function DashboardNav() {
 
           {/* Right side: Create Goal Button + User Profile */}
           <div className="flex items-center gap-4">
-            <Link href="/dashboard/goals/new">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                Create new goal
-              </Button>
-            </Link>
+            <CreateGoalButton />
 
             {/* User Profile Menu */}
             <UserProfileMenu
