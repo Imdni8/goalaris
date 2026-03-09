@@ -539,7 +539,10 @@ const InputArea = ({
             </button>
           ) : (
             <button
-              onClick={() => onModeChange?.('text')}
+              onClick={() => {
+                setIsActive(true);
+                onModeChange?.('text');
+              }}
               style={{
                 width: '100%',
                 padding: '11px 16px',
