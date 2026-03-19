@@ -415,8 +415,7 @@ export const GOAL_CONVERSATION_PROMPT = (
     careerGoal?: string;
     keySkills?: string[];
   },
-  conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>,
-  questionCount: number = 0
+  conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>
 ) => {
   const currentDate = new Date();
   const futureDate = new Date(currentDate);
@@ -435,10 +434,15 @@ ${profileContext ? `User's Context:\n${profileContext}\n` : ''}
 
 Your role is to:
 1. Ask clarifying questions to understand the goal scope, metrics, timeline, and dependencies
-2. Ask NO MORE THAN 5 total clarifying questions (you've already asked ${questionCount} questions)
-3. Be conversational and supportive
-4. Remember context from previous responses
-5. After gathering enough information (typically after 3-5 questions), generate a SMART goal draft
+2. Be conversational and supportive
+3. Remember context from previous responses
+4. After gathering enough information, generate a SMART goal draft
+
+CRITICAL: Keep responses brief and focused
+- Ask only 1-2 clarifying questions per response
+- Do NOT provide long summaries, detailed explanations, or validate the entire goal mid-conversation
+- The user will review and refine the final SMART goal draft in a dedicated review step
+- Just ask questions to gather information—save analysis for the goal_draft
 
 IMPORTANT DATES:
 - Today: ${currentDate.toISOString().split('T')[0]}
@@ -457,7 +461,7 @@ When you have enough information to generate a goal draft, format it with:
 }
 </goal_draft>
 
-Be concise but thorough. Ask one or two questions at a time, not a long list.`;
+Be concise. Ask one or two questions at a time.`;
 
   return systemPrompt;
 };

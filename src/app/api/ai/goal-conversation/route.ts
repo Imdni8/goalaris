@@ -39,7 +39,6 @@ export async function POST(request: NextRequest) {
       conversationHistory,
       userMessage,
       userProfile = {},
-      questionCount = 0,
     } = await request.json();
 
     if (!userMessage || typeof userMessage !== 'string') {
@@ -65,7 +64,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Build the system prompt with user context
-    const systemPrompt = GOAL_CONVERSATION_PROMPT(userProfile, conversationHistory, questionCount);
+    const systemPrompt = GOAL_CONVERSATION_PROMPT(userProfile, conversationHistory);
 
     // Build contents array
     const contents = [
@@ -91,7 +90,6 @@ export async function POST(request: NextRequest) {
 
     console.log('[goal-conversation] Calling Gemini API for goal conversation');
     console.log('[goal-conversation] Conversation history length:', conversationHistory.length);
-    console.log('[goal-conversation] Question count:', questionCount);
 
     const response = await fetch(url, {
       method: 'POST',

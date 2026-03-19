@@ -42,7 +42,6 @@ export default function ConversationalGoalForm() {
   const [error, setError] = useState<string | null>(null);
   const [goalDraft, setGoalDraft] = useState<GoalDraft | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile>({});
-  const [questionCount, setQuestionCount] = useState(0);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -128,7 +127,6 @@ export default function ConversationalGoalForm() {
           conversationHistory: messages,
           userMessage: userInput,
           userProfile,
-          questionCount,
         }),
       });
 
@@ -171,9 +169,6 @@ export default function ConversationalGoalForm() {
       if (draft) {
         setGoalDraft(draft);
         setStep('review');
-      } else {
-        // Increment question count
-        setQuestionCount((prev) => prev + 1);
       }
 
       // Final message without goal_draft tags for display
@@ -292,9 +287,18 @@ export default function ConversationalGoalForm() {
           </Button>
         </form>
 
-        <p className="text-xs text-gray-500">
-          Questions asked: {questionCount}/5 • You can skip this conversation anytime and create a goal manually
-        </p>
+        {goalDraft && (
+          <div className="flex justify-center">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setStep('review')}
+              className="text-blue-600 hover:text-blue-700"
+            >
+              Back to review
+            </Button>
+          </div>
+        )}
       </div>
     );
   }

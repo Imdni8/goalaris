@@ -51,19 +51,9 @@ export default async function GoalsPage() {
 
   return (
     <div>
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Goals</h1>
-          <p className="mt-2 text-gray-600">Create and manage your annual goals</p>
-        </div>
-        <div className="flex gap-3">
-          <Link href="/dashboard/goals/new-ai">
-            <Button variant="outline">✨ Create with AI</Button>
-          </Link>
-          <Link href="/dashboard/goals/new">
-            <Button>+ Manual Entry</Button>
-          </Link>
-        </div>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Goals</h1>
+        <p className="mt-2 text-gray-600">Create and manage your annual goals</p>
       </div>
 
       {error && (

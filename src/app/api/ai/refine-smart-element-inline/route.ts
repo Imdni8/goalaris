@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid input: elementName is required' }, { status: 400 });
     }
 
-    if (!currentValue || typeof currentValue !== 'string') {
+    if (currentValue === undefined || currentValue === null || typeof currentValue !== 'string') {
       return NextResponse.json({ error: 'Invalid input: currentValue is required' }, { status: 400 });
     }
 
