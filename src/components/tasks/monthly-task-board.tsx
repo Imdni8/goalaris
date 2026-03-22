@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { ensureAnyTaskStatus } from '@/lib/utils/null-safe';
 import { CheckCircle2, Circle } from 'lucide-react';
+import GenerateTasksButtonModal from './generate-tasks-button-modal';
 
 interface TaskRow {
   id: string;
@@ -52,6 +53,7 @@ export default function MonthlyTaskBoard({
 }: MonthlyTaskBoardProps) {
   const supabase = createClient();
   const [localTasks, setLocalTasks] = useState<TaskRow[]>(tasks);
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
 
   // Determine which months to show as tabs
   const today = new Date().toISOString().slice(0, 7);
@@ -132,12 +134,26 @@ export default function MonthlyTaskBoard({
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Month tabs */}
-      <div className="flex gap-2 border-b border-gray-200">
-        {visibleMonths.length === 0 ? (
-          <p className="text-sm text-gray-500 py-2">No tasks yet for this goal.</p>
+    <>
+      <div className="flex flex-col gap-6">
+        {/* No tasks yet - show generate button */}
+        {localTasks.length === 0 ? (
+          <div className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-8 text-center">
+            <p className="text-gray-600 mb-4">No tasks yet for this goal. Generate AI-powered tasks to get started.</p>
+            <button
+              onClick={() => setShowGenerateModal(true)}
+              className="rounded bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+            >
+              Generate Tasks
+            </button>
+          </div>
         ) : (
+          <>
+            {/* Month tabs */}
+            <div className="flex gap-2 border-b border-gray-200">
+              {visibleMonths.length === 0 ? (
+                <p className="text-sm text-gray-500 py-2">No tasks yet for this goal.</p>
+              ) : (
           visibleMonths.map(month => {
             const monthDate = new Date(`${month}-01`);
             const monthLabel = monthDate.toLocaleDateString('en-US', {
@@ -282,52 +298,63 @@ export default function MonthlyTaskBoard({
         )}
       </div>
 
-      {/* Legacy tasks section (if any) */}
-      {legacyTasks.length > 0 && (
-        <div className="border-t border-gray-200 pt-6">
-          <h3 className="mb-3 text-sm font-semibold text-gray-700">Previously Created Tasks</h3>
-          <div className="space-y-2">
-            {legacyTasks.map(task => {
-              const taskStatus = ensureAnyTaskStatus(task.status);
-              const isDone = taskStatus === 'done';
+            {/* Legacy tasks section (if any) */}
+            {legacyTasks.length > 0 && (
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="mb-3 text-sm font-semibold text-gray-700">Previously Created Tasks</h3>
+                <div className="space-y-2">
+                  {legacyTasks.map(task => {
+                    const taskStatus = ensureAnyTaskStatus(task.status);
+                    const isDone = taskStatus === 'done';
 
-              return (
-                <div
-                  key={task.id}
-                  className={`flex gap-3 rounded-lg border border-gray-200 p-3 ${
-                    isDone ? 'bg-gray-50' : 'bg-white hover:bg-gray-50'
-                  } transition-colors cursor-pointer`}
-                  onClick={() => toggleTask(task.id, task.status)}
-                >
-                  <div className="flex-shrink-0 pt-0.5">
-                    {isDone ? (
-                      <CheckCircle2 size={20} className="text-green-600" />
-                    ) : (
-                      <Circle size={20} className="text-gray-300" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className={`text-sm font-medium ${
-                        isDone
-                          ? 'line-through text-gray-500'
-                          : 'text-gray-900'
-                      }`}
-                    >
-                      {task.title}
-                    </p>
-                    {task.description && (
-                      <p className={`text-xs mt-1 ${isDone ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {task.description}
-                      </p>
-                    )}
-                  </div>
+                    return (
+                      <div
+                        key={task.id}
+                        className={`flex gap-3 rounded-lg border border-gray-200 p-3 ${
+                          isDone ? 'bg-gray-50' : 'bg-white hover:bg-gray-50'
+                        } transition-colors cursor-pointer`}
+                        onClick={() => toggleTask(task.id, task.status)}
+                      >
+                        <div className="flex-shrink-0 pt-0.5">
+                          {isDone ? (
+                            <CheckCircle2 size={20} className="text-green-600" />
+                          ) : (
+                            <Circle size={20} className="text-gray-300" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p
+                            className={`text-sm font-medium ${
+                              isDone
+                                ? 'line-through text-gray-500'
+                                : 'text-gray-900'
+                            }`}
+                          >
+                            {task.title}
+                          </p>
+                          {task.description && (
+                            <p className={`text-xs mt-1 ${isDone ? 'text-gray-400' : 'text-gray-600'}`}>
+                              {task.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
-        </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Modal for generating tasks */}
+      {showGenerateModal && (
+        <GenerateTasksButtonModal
+          goalId={goalId}
+          onClose={() => setShowGenerateModal(false)}
+        />
       )}
-    </div>
+    </>
   );
 }

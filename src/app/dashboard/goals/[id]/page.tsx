@@ -45,23 +45,21 @@ export default async function GoalDetailPage({ params }: { params: { id: string 
       <div className="mx-auto max-w-7xl px-6 py-8">
         <div className="flex gap-8">
           {/* Left sidebar: Goal card */}
-          <aside className="w-72 flex-shrink-0">
-            <div className="rounded-lg border border-gray-200 bg-white p-6">
+          <aside className="w-72 flex-shrink-0 space-y-6">
+            <div className="rounded-lg border border-gray-200 bg-white p-6 group">
               <GoalSmartCard goal={goal} />
             </div>
           </aside>
 
           {/* Main area: Tasks */}
           <main className="flex-1 min-w-0">
-            <div className="rounded-lg border border-gray-200 bg-white p-6">
-              <h2 className="mb-6 text-xl font-semibold text-gray-900">Tasks</h2>
-              <MonthlyTaskBoard
-                goalId={goal.id}
-                currentMonth={goal.current_month}
-                monthsGenerated={goal.months_generated || []}
-                tasks={tasks || []}
-              />
-            </div>
+            <h2 className="mb-6 text-xl font-semibold text-gray-900">Tasks</h2>
+            <MonthlyTaskBoard
+              goalId={goal.id}
+              currentMonth={goal.current_month}
+              monthsGenerated={goal.months_generated || []}
+              tasks={tasks || []}
+            />
           </main>
         </div>
       </div>
