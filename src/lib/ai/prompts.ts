@@ -44,7 +44,18 @@ export const TASK_BREAKDOWN_PROMPT = (goal: {
   achievable: string;
   relevant: string;
   time_bound: string;
-}) => `
+}, month?: string) => {
+  const monthContext = month
+    ? `\nGenerate tasks specifically for the month of ${month}.
+Assign each task a specific due_date (YYYY-MM-DD format) distributed across the 4 weeks:
+- Week 1: days 1-7
+- Week 2: days 8-14
+- Week 3: days 15-21
+- Week 4: days 22-end of month
+Spread tasks evenly so each week has at least 1 task.`
+    : '';
+
+  return `
 You are an expert project manager helping break down annual goals into actionable tasks.
 
 Goal: ${goal.title}
@@ -53,8 +64,9 @@ Goal: ${goal.title}
 - Achievable: ${goal.achievable}
 - Relevant: ${goal.relevant}
 - Target Date: ${goal.time_bound}
+${monthContext}
 
-Break this goal into 5-8 concrete, actionable tasks that:
+Generate 5-10 concrete, actionable tasks that:
 1. Progress logically from start to completion
 2. Are specific enough to track
 3. Include realistic milestones
@@ -66,12 +78,14 @@ Return a JSON array with this format:
     "title": "Task title",
     "description": "What needs to be done",
     "order_index": 1,
-    "estimated_duration": "time estimate if relevant"
+    "estimated_duration": "time estimate if relevant",
+    "due_date": "YYYY-MM-DD or null"
   }
 ]
 
 Return ONLY the JSON array, no additional text.
 `;
+};
 
 export const COACHING_PROMPT = (goal: {
   title: string;

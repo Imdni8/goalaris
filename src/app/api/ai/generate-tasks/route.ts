@@ -32,11 +32,14 @@ export async function POST(request: NextRequest) {
       return createRateLimitResponse(rateLimit.resetAt);
     }
 
-    const { goalId } = await request.json();
+    const { goalId, month } = await request.json();
 
     if (!goalId) {
       return NextResponse.json({ error: 'Invalid input: goalId is required' }, { status: 400 });
     }
+
+    // Default to current month if not provided
+    const targetMonth = month || new Date().toISOString().slice(0, 7);
 
     // Fetch the goal
     const { data: goal, error: goalError } = await supabase
@@ -58,7 +61,7 @@ export async function POST(request: NextRequest) {
       achievable: goal.achievable || '',
       relevant: goal.relevant || '',
       time_bound: goal.time_bound || '',
-    });
+    }, targetMonth);
 
     // Get current max order_index for this goal
     const { data: existingTasks } = await supabase
@@ -77,10 +80,13 @@ export async function POST(request: NextRequest) {
       goal_id: goalId,
       title: task.title,
       description: task.description,
-      due_date: null,
-      status: 'todo' as const,
+      due_date: task.due_date || null,
+      month: targetMonth,
+      status: 'pending' as const,
       order_index: task.order_index !== undefined ? task.order_index : startOrderIndex + index,
       ai_generated: true,
+      is_manual: false,
+      reschedule_count: 0,
     }));
 
     const { data: insertedTasks, error: insertError } = await supabase
@@ -93,13 +99,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to save tasks' }, { status: 500 });
     }
 
+    // Update goal's current_month and months_generated
+    const { data: currentGoal } = await supabase
+      .from('goals')
+      .select('months_generated')
+      .eq('id', goalId)
+      .single();
+
+    const existingMonths = currentGoal?.months_generated || [];
+    const updatedMonths = existingMonths.includes(targetMonth)
+      ? existingMonths
+      : [...existingMonths, targetMonth].sort();
+
+    await supabase
+      .from('goals')
+      .update({
+        current_month: targetMonth,
+        months_generated: updatedMonths,
+      })
+      .eq('id', goalId);
+
     // Log the AI interaction
     await supabase.from('ai_interactions').insert([
       {
         user_id: user.id,
         interaction_type: 'task_breakdown',
         goal_id: goalId,
-        prompt: `Generate tasks for goal: ${goal.title}`,
+        prompt: `Generate tasks for goal: ${goal.title} (Month: ${targetMonth})`,
         response: JSON.stringify(taskBreakdown),
       },
     ]);
@@ -107,6 +133,7 @@ export async function POST(request: NextRequest) {
     // Track tasks_generated event
     await trackEvent('tasks_generated', {
       goalId,
+      month: targetMonth,
       count: insertedTasks?.length || 0,
     }, user.id);
 

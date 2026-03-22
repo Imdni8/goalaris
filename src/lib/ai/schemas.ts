@@ -28,6 +28,7 @@ export const TaskSchema = z.object({
   description: z.string().describe('Task description'),
   order_index: z.number().describe('Order in sequence'),
   estimated_duration: z.string().optional().describe('Time estimate'),
+  due_date: z.string().nullable().optional().describe('Due date in YYYY-MM-DD format'),
 });
 
 export type Task = z.infer<typeof TaskSchema>;

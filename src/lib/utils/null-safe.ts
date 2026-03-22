@@ -34,3 +34,20 @@ export const ensureGoalStatus = (
   }
   return status as 'active' | 'completed' | 'archived';
 };
+
+/** Type for new monthly task statuses (Phase 3) */
+export type NewTaskStatus = 'pending' | 'done' | 'dropped';
+
+/** Type for any task status (legacy + new) */
+export type AnyTaskStatus = 'todo' | 'in_progress' | 'blocked' | 'completed' | NewTaskStatus;
+
+/** Convert nullable task status to a valid status (supports both legacy and new statuses) */
+export const ensureAnyTaskStatus = (
+  status: string | null | undefined
+): AnyTaskStatus => {
+  const validStatuses: AnyTaskStatus[] = ['todo', 'in_progress', 'blocked', 'completed', 'pending', 'done', 'dropped'];
+  if (status && validStatuses.includes(status as AnyTaskStatus)) {
+    return status as AnyTaskStatus;
+  }
+  return 'pending';
+};

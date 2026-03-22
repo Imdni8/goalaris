@@ -243,9 +243,11 @@ export type Database = {
           achievable: string | null
           ai_suggested: boolean | null
           created_at: string | null
+          current_month: string | null
           description: string | null
           id: string
           measurable: string | null
+          months_generated: string[] | null
           relevant: string | null
           specific: string | null
           status: string | null
@@ -258,9 +260,11 @@ export type Database = {
           achievable?: string | null
           ai_suggested?: boolean | null
           created_at?: string | null
+          current_month?: string | null
           description?: string | null
           id?: string
           measurable?: string | null
+          months_generated?: string[] | null
           relevant?: string | null
           specific?: string | null
           status?: string | null
@@ -273,9 +277,11 @@ export type Database = {
           achievable?: string | null
           ai_suggested?: boolean | null
           created_at?: string | null
+          current_month?: string | null
           description?: string | null
           id?: string
           measurable?: string | null
+          months_generated?: string[] | null
           relevant?: string | null
           specific?: string | null
           status?: string | null
@@ -367,12 +373,17 @@ export type Database = {
         Row: {
           ai_generated: boolean | null
           blocker_description: string | null
+          completed_at: string | null
+          completion_note: string | null
           created_at: string | null
           description: string | null
           due_date: string | null
           goal_id: string
           id: string
+          is_manual: boolean
+          month: string | null
           order_index: number
+          reschedule_count: number
           status: string | null
           title: string
           updated_at: string | null
@@ -380,12 +391,17 @@ export type Database = {
         Insert: {
           ai_generated?: boolean | null
           blocker_description?: string | null
+          completed_at?: string | null
+          completion_note?: string | null
           created_at?: string | null
           description?: string | null
           due_date?: string | null
           goal_id: string
           id?: string
+          is_manual?: boolean
+          month?: string | null
           order_index: number
+          reschedule_count?: number
           status?: string | null
           title: string
           updated_at?: string | null
@@ -393,12 +409,17 @@ export type Database = {
         Update: {
           ai_generated?: boolean | null
           blocker_description?: string | null
+          completed_at?: string | null
+          completion_note?: string | null
           created_at?: string | null
           description?: string | null
           due_date?: string | null
           goal_id?: string
           id?: string
+          is_manual?: boolean
+          month?: string | null
           order_index?: number
+          reschedule_count?: number
           status?: string | null
           title?: string
           updated_at?: string | null

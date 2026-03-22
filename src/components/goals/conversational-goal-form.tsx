@@ -202,7 +202,7 @@ export default function ConversationalGoalForm() {
         return;
       }
 
-      const { error: insertError } = await supabase.from('goals').insert([
+      const { data: insertedGoal, error: insertError } = await supabase.from('goals').insert([
         {
           user_id: userData.user.id,
           title: goalDraft.title,
@@ -215,12 +215,19 @@ export default function ConversationalGoalForm() {
           status: 'active',
           ai_suggested: true,
         },
-      ]);
+      ]).select('id').single();
 
       if (insertError) {
         setError(insertError.message);
         return;
       }
+
+      if (!insertedGoal) {
+        setError('Failed to save goal');
+        return;
+      }
+
+      const newGoalId = insertedGoal.id;
 
       // Track event
       await fetch('/api/analytics/track', {
@@ -232,8 +239,16 @@ export default function ConversationalGoalForm() {
         }),
       }).catch(console.error);
 
+      // Auto-generate tasks for the current month (fire-and-forget)
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      fetch('/api/ai/generate-tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ goalId: newGoalId, month: currentMonth }),
+      }).catch(err => console.error('Task generation failed:', err));
+
       setStep('approved');
-      router.push('/dashboard/goals');
+      router.push(`/dashboard/goals/${newGoalId}`);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save goal');
