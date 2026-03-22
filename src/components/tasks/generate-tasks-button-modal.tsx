@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 
 interface GenerateTasksButtonModalProps {
   goalId: string;
-  onClose: () => void;
+  onClose: (success?: boolean) => void;
 }
 
 export default function GenerateTasksButtonModal({ goalId, onClose }: GenerateTasksButtonModalProps) {
@@ -31,7 +31,7 @@ export default function GenerateTasksButtonModal({ goalId, onClose }: GenerateTa
       }
 
       router.refresh();
-      onClose();
+      onClose(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate tasks');
     } finally {
@@ -46,8 +46,10 @@ export default function GenerateTasksButtonModal({ goalId, onClose }: GenerateTa
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
           <h2 className="text-lg font-semibold text-gray-900">Generate Tasks</h2>
           <button
-            onClick={onClose}
+            type="button"
+            onClick={() => onClose()}
             className="text-gray-500 hover:text-gray-700 transition-colors"
+            title="Close"
           >
             <X size={20} />
           </button>
@@ -69,12 +71,14 @@ export default function GenerateTasksButtonModal({ goalId, onClose }: GenerateTa
         {/* Footer */}
         <div className="border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
           <button
-            onClick={onClose}
+            type="button"
+            onClick={() => onClose()}
             className="rounded px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
           >
             Cancel
           </button>
           <button
+            type="button"
             onClick={handleGenerateTasks}
             disabled={loading}
             className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"

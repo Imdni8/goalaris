@@ -133,6 +133,22 @@ export default function MonthlyTaskBoard({
     }
   }
 
+  async function handleGenerateModalClose(success?: boolean) {
+    setShowGenerateModal(false);
+    if (success) {
+      // Refetch tasks from the server
+      const { data: updatedTasks } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('goal_id', goalId)
+        .order('due_date', { ascending: true, nullsFirst: false });
+
+      if (updatedTasks) {
+        setLocalTasks(updatedTasks);
+      }
+    }
+  }
+
   return (
     <>
       <div className="flex flex-col gap-6">
@@ -141,6 +157,7 @@ export default function MonthlyTaskBoard({
           <div className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-8 text-center">
             <p className="text-gray-600 mb-4">No tasks yet for this goal. Generate AI-powered tasks to get started.</p>
             <button
+              type="button"
               onClick={() => setShowGenerateModal(true)}
               className="rounded bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
             >
@@ -352,7 +369,7 @@ export default function MonthlyTaskBoard({
       {showGenerateModal && (
         <GenerateTasksButtonModal
           goalId={goalId}
-          onClose={() => setShowGenerateModal(false)}
+          onClose={handleGenerateModalClose}
         />
       )}
     </>

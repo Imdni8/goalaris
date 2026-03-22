@@ -239,13 +239,18 @@ export default function ConversationalGoalForm() {
         }),
       }).catch(console.error);
 
-      // Auto-generate tasks for the current month (fire-and-forget)
+      // Auto-generate tasks for the current month (wait for completion)
       const currentMonth = new Date().toISOString().slice(0, 7);
-      fetch('/api/ai/generate-tasks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ goalId: newGoalId, month: currentMonth }),
-      }).catch(err => console.error('Task generation failed:', err));
+      try {
+        await fetch('/api/ai/generate-tasks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ goalId: newGoalId, month: currentMonth }),
+        });
+      } catch (err) {
+        console.error('Task generation failed:', err);
+        // Don't block navigation if task generation fails
+      }
 
       setStep('approved');
       router.push(`/dashboard/goals/${newGoalId}`);
