@@ -12,10 +12,9 @@ export default function NewAiGoalPage() {
     <div className="mx-auto max-w-3xl">
       <div className="mb-8 flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Create Goal with AI</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Review Goal</h1>
           <p className="mt-2 text-gray-600">
-            Let&apos;s co-create a SMART goal together. I&apos;ll ask you some clarifying questions to help
-            structure the perfect goal for you.
+            Review your AI-generated SMART goal, make any edits you'd like, then save it to your goals.
           </p>
         </div>
         <Button
