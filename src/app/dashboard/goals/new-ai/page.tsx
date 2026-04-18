@@ -14,7 +14,7 @@ export default function NewAiGoalPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Review Goal</h1>
           <p className="mt-2 text-gray-600">
-            Review your AI-generated SMART goal, make any edits you'd like, then save it to your goals.
+            Review your AI-generated SMART goal, make any edits you&apos;d like, then save it to your goals.
           </p>
         </div>
         <Button
