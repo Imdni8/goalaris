@@ -202,6 +202,13 @@ export default function ConversationalGoalForm() {
         return;
       }
 
+      // Compute the next goal_number for this user
+      const { count } = await supabase
+        .from('goals')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userData.user.id);
+      const goalNumber = (count ?? 0) + 1;
+
       const { data: insertedGoal, error: insertError } = await supabase.from('goals').insert([
         {
           user_id: userData.user.id,
@@ -214,6 +221,7 @@ export default function ConversationalGoalForm() {
           time_bound: goalDraft.time_bound || null,
           status: 'active',
           ai_suggested: true,
+          goal_number: goalNumber,
         },
       ]).select('id').single();
 

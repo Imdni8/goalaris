@@ -45,8 +45,8 @@ export default async function GoalDetailPage({ params }: { params: { id: string 
       <div className="mx-auto max-w-7xl px-6 py-8">
         <div className="flex gap-8">
           {/* Left sidebar: Goal card */}
-          <aside className="w-72 flex-shrink-0 space-y-6">
-            <div className="rounded-lg border border-gray-200 bg-white p-6 group">
+          <aside className="w-72 flex-shrink-0">
+            <div className="sticky top-8 flex flex-col gap-[10px]">
               <GoalSmartCard goal={goal} />
             </div>
           </aside>

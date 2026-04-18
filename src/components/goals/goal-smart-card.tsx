@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, Edit2 } from 'lucide-react';
+import { Edit2, Paperclip } from 'lucide-react';
 import { ensureGoalStatus } from '@/lib/utils/null-safe';
 import SmartCriteriaModal from './smart-criteria-modal';
 import GoalEditModal from './goal-edit-modal';
@@ -11,6 +11,7 @@ interface GoalSmartCardProps {
     id: string;
     title: string;
     status: string | null;
+    goal_number: number | null;
     description: string | null;
     specific: string | null;
     measurable: string | null;
@@ -24,47 +25,92 @@ export default function GoalSmartCard({ goal }: GoalSmartCardProps) {
   const [showSmartModal, setShowSmartModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const goalStatus = ensureGoalStatus(goal.status);
+  const goalNumber = goal.goal_number ? String(goal.goal_number).padStart(2, '0') : null;
 
-  const hasSmart = goal.specific || goal.measurable || goal.achievable || goal.relevant || goal.time_bound;
+  const handleCardClick = () => {
+    setShowSmartModal(true);
+  };
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowEditModal(true);
+  };
+
+  const handleDetailsClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowSmartModal(true);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleCardClick();
+    }
+  };
+
+  // Status chip styling
+  const chipStyles = {
+    active: { bg: 'bg-[#d8ecdf]', text: 'text-[#2f7a54]', dot: 'bg-[#2f7a54]' },
+    completed: { bg: 'bg-[#d8ecdf]', text: 'text-[#2f7a54]', dot: 'bg-[#2f7a54]' },
+    archived: { bg: 'bg-gray-100', text: 'text-gray-500', dot: 'bg-gray-500' },
+  };
+
+  const styles = chipStyles[goalStatus as keyof typeof chipStyles] || chipStyles.active;
 
   return (
     <>
-      <div className="flex flex-col gap-4">
-        {/* Header with title and action buttons */}
-        <div className="flex items-start justify-between gap-3">
-          <h2 className="text-lg font-semibold text-gray-900">{goal.title}</h2>
-
-          {/* Action buttons - show on hover, tertiary style */}
-          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              onClick={() => setShowEditModal(true)}
-              className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
-              title="Edit goal"
-            >
-              <Edit2 size={18} />
-            </button>
-            <button
-              onClick={() => setShowSmartModal(true)}
-              className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
-            >
-              Details
-            </button>
-          </div>
+      {/* Goal Card */}
+      <div
+        role="button"
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
+        onClick={handleCardClick}
+        className="group rounded-lg border border-[#e4e6ea] bg-white p-[14px] cursor-pointer transition-all duration-[140ms] hover:border-[#cfd3d9] hover:shadow-[0_2px_0_rgba(10,10,10,0.02),0_8px_24px_-12px_rgba(10,10,10,0.15)]"
+      >
+        {/* Header row: Goal number + Edit button */}
+        <div className="flex items-center justify-between mb-[12px]">
+          <span className="text-[10.5px] font-semibold tracking-[0.1em] text-[#8a909a] uppercase">
+            {goalNumber ? `Goal ${goalNumber}` : 'Goal'}
+          </span>
+          <button
+            onClick={handleEditClick}
+            aria-label="Edit goal"
+            className="p-1 rounded-[6px] text-gray-600 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto transition-opacity duration-[120ms] hover:bg-[#f2f3f5] active:bg-[#e8eaed] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+          >
+            <Edit2 size={14} strokeWidth={1.5} />
+          </button>
         </div>
 
-        {/* Status badge */}
-        <div>
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-800 capitalize">
-            {goalStatus}
+        {/* Title */}
+        <h2 className="text-[15.5px] font-bold leading-[1.22] text-[#1a1d21] mb-[12px] line-clamp-none" style={{ textWrap: 'balance' }}>
+          {goal.title}
+        </h2>
+
+        {/* Meta row: Status chip + Details link */}
+        <div className="flex items-center justify-between">
+          <span className={`inline-flex items-center gap-1 px-[10px] py-[6px] rounded-full text-[11.5px] font-medium ${styles.bg} ${styles.text}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${styles.dot}`} />
+            <span className="capitalize">{goalStatus}</span>
           </span>
+          <button
+            onClick={handleDetailsClick}
+            className="text-[13px] text-[#4a5058] hover:text-[#1a1d21] font-medium transition-colors"
+          >
+            Details ›
+          </button>
         </div>
       </div>
 
-      {/* Attachments section - separate box */}
-      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+      {/* Attachments Card */}
+      <div className="rounded-lg border border-[#e4e6ea] bg-white px-[12px] py-[10px]">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-gray-600">Attachments</span>
-          <span className="text-xs text-gray-400">Coming soon</span>
+          <div className="flex items-center gap-2">
+            <Paperclip size={16} className="text-[#4a5058]" />
+            <span className="text-[13px] font-medium text-[#1a1d21]">Attachments</span>
+          </div>
+          <span className="text-[10.5px] text-[#8a909a] bg-[#f3f4f6] px-2 py-1 rounded-full">
+            Coming soon
+          </span>
         </div>
       </div>
 

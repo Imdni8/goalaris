@@ -245,6 +245,7 @@ export type Database = {
           created_at: string | null
           current_month: string | null
           description: string | null
+          goal_number: number | null
           id: string
           measurable: string | null
           months_generated: string[] | null
@@ -262,6 +263,7 @@ export type Database = {
           created_at?: string | null
           current_month?: string | null
           description?: string | null
+          goal_number?: number | null
           id?: string
           measurable?: string | null
           months_generated?: string[] | null
@@ -279,6 +281,7 @@ export type Database = {
           created_at?: string | null
           current_month?: string | null
           description?: string | null
+          goal_number?: number | null
           id?: string
           measurable?: string | null
           months_generated?: string[] | null
