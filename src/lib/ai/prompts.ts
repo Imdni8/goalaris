@@ -44,7 +44,7 @@ export const TASK_BREAKDOWN_PROMPT = (goal: {
   achievable: string;
   relevant: string;
   time_bound: string;
-}, month?: string) => {
+}, month?: string, context?: string) => {
   const monthContext = month
     ? `\nGenerate tasks specifically for the month of ${month}.
 Assign each task a specific due_date (YYYY-MM-DD format) distributed across the 4 weeks:
@@ -53,6 +53,11 @@ Assign each task a specific due_date (YYYY-MM-DD format) distributed across the 
 - Week 3: days 15-21
 - Week 4: days 22-end of month
 Spread tasks evenly so each week has at least 1 task.`
+    : '';
+
+  const userContextSection = context
+    ? `\nUser Context from Check-in:
+${context}`
     : '';
 
   return `
@@ -64,7 +69,7 @@ Goal: ${goal.title}
 - Achievable: ${goal.achievable}
 - Relevant: ${goal.relevant}
 - Target Date: ${goal.time_bound}
-${monthContext}
+${monthContext}${userContextSection}
 
 Generate 5-10 concrete, actionable tasks that:
 1. Progress logically from start to completion
@@ -478,4 +483,147 @@ When you have enough information to generate a goal draft, format it with:
 Be concise. Ask one or two questions at a time.`;
 
   return systemPrompt;
+};
+
+export const MONTHLY_CHECKIN_PROMPT = (params: {
+  goal: {
+    title: string;
+    specific: string;
+    measurable: string;
+    achievable: string;
+    relevant: string;
+    time_bound: string;
+  };
+  userProfile: {
+    jobTitle?: string;
+    company?: string;
+    careerGoal?: string;
+  };
+  previousMonth: string; // "2026-03"
+  newMonth: string; // "2026-04"
+  completedTasks: Array<{
+    title: string;
+    completion_note?: string | null;
+  }>;
+  pendingTasks: Array<{
+    id: string;
+    title: string;
+    reschedule_count: number;
+  }>;
+  conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>;
+}) => {
+  const formatMonth = (monthStr: string) => {
+    const [year, month] = monthStr.split('-');
+    return new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString('en-US', {
+      month: 'long',
+      year: 'numeric',
+    });
+  };
+
+  const previousMonthLabel = formatMonth(params.previousMonth);
+  const newMonthLabel = formatMonth(params.newMonth);
+
+  let pendingTasksSection = '';
+  if (params.pendingTasks.length > 0) {
+    pendingTasksSection = `\n## Pending Tasks from ${previousMonthLabel}:\n`;
+    params.pendingTasks.forEach((task) => {
+      const rescheduleCount = task.reschedule_count || 0;
+      let tone = '';
+      let recommendation = '';
+
+      if (rescheduleCount === 0) {
+        tone = 'This task is being addressed for the first time this month.';
+        recommendation = 'Carrying it forward is a reasonable option.';
+      } else if (rescheduleCount === 1) {
+        tone = '⚠️ This was carried over from last month already.';
+        recommendation = 'Consider breaking it down or dropping it if no longer relevant.';
+      } else {
+        tone = `🚨 This task has been pending for ${rescheduleCount + 1} months.`;
+        recommendation =
+          'Breaking it down is strongly recommended. Carrying it forward again is unlikely to help.';
+      }
+
+      pendingTasksSection += `\n- **${task.title}** [Carry-forward count: ${rescheduleCount}]\n  ${tone} ${recommendation}\n`;
+    });
+  }
+
+  return `You are a collaborative career coach guiding a monthly check-in conversation.
+
+**Goal Being Tracked:**
+${params.goal.title}
+- Specific: ${params.goal.specific}
+- Measurable: ${params.goal.measurable}
+- Achievable: ${params.goal.achievable}
+- Relevant: ${params.goal.relevant}
+- Target Date: ${params.goal.time_bound}
+
+**User Profile:**
+${params.userProfile.jobTitle ? `- Role: ${params.userProfile.jobTitle}` : ''}
+${params.userProfile.company ? `- Company: ${params.userProfile.company}` : ''}
+${params.userProfile.careerGoal ? `- Career Goal: ${params.userProfile.careerGoal}` : ''}
+
+**Review Period:**
+Previous Month: ${previousMonthLabel}
+New Month: ${newMonthLabel}
+
+**Completed Tasks from ${previousMonthLabel}:** (${params.completedTasks.length})
+${
+  params.completedTasks.length > 0
+    ? params.completedTasks.map((t) => `- ${t.title}${t.completion_note ? ` (Note: ${t.completion_note})` : ''}`).join('\n')
+    : '- None completed'
+}
+${pendingTasksSection}
+
+---
+
+## Your Role in This Check-in:
+
+You are guiding a 4-step collaborative conversation:
+
+### Step 1: Review Previous Month
+Start by acknowledging progress: summarize what was completed, what's still pending, and overall progress toward the goal.
+Be encouraging but honest. Ask the user how they feel about the month's progress.
+
+### Step 2: Resolve Pending Tasks
+For each pending task, discuss collaboratively:
+- Ask the user's thoughts: "What would you like to do with this task?"
+- Options to suggest:
+  - **Carry forward**: Move to ${newMonthLabel} (increment carry-forward count)
+  - **Break down**: Split into smaller, more actionable subtasks for ${newMonthLabel}
+  - **Drop**: No longer relevant (preserved for audit trail)
+  - **Other**: User can provide custom context
+
+When suggesting actions, adjust your tone based on how many times the task has been carried forward:
+- **First time (count=0)**: Neutral tone, carry-forward is reasonable
+- **Second time (count=1)**: Mild concern, encourage breaking it down
+- **3+ times (count≥2)**: Urgent tone, strongly recommend breaking down; note that carrying forward hasn't helped
+
+### Step 3: Context Gathering
+Ask about what's changed since last month:
+- New priorities or blockers?
+- Learnings from last month that should shape this month's tasks?
+- Any external changes (team, scope, deadlines)?
+- What worked well? What didn't?
+
+Keep this conversational. Follow the user's lead.
+
+### Step 4: Signal Readiness to Generate
+Once you've reviewed the month, resolved pending tasks, and gathered context, conclude with:
+\`<READY_TO_GENERATE>\`
+
+Followed by a brief summary like: "Great! I have a clear picture of your progress and priorities for ${newMonthLabel}. Ready to generate tasks optimized for this month."
+
+---
+
+## Key Guidelines:
+
+1. **Be Collaborative**: This is a conversation, not a form. Adapt to what the user says.
+2. **Be Specific**: Reference actual task names, metrics, and deadlines from the goal.
+3. **Escalate Appropriately**: Use the tone guidance above for pending tasks with high carry-forward counts.
+4. **Free-Form Input**: Always allow the user to explain in their own words. Adapt suggestions based on their input.
+5. **Skip if Empty**: If there are NO pending tasks, skip Step 2 entirely and go straight to Step 3 (context gathering).
+6. **Keep It Conversational**: Don't present a checklist. Have a natural conversation.
+7. **Use Markdown**: Format responses with bold, bullet points, etc. for readability.
+
+Remember: The user knows their work better than you do. Listen, guide, and adapt.`;
 };

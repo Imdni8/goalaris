@@ -30,6 +30,7 @@ interface MonthlyTaskBoardProps {
   currentMonth: string | null;
   monthsGenerated: string[];
   tasks: TaskRow[];
+  onGenerateNewMonth?: (newMonth: string) => void;
 }
 
 function getWeekNumber(dateStr: string | null): 1 | 2 | 3 | 4 | null {
@@ -50,6 +51,7 @@ export default function MonthlyTaskBoard({
   currentMonth,
   monthsGenerated,
   tasks,
+  onGenerateNewMonth,
 }: MonthlyTaskBoardProps) {
   const supabase = createClient();
   const [localTasks, setLocalTasks] = useState<TaskRow[]>(tasks);
@@ -61,6 +63,30 @@ export default function MonthlyTaskBoard({
     () => monthsGenerated.filter(m => m <= today).sort(),
     [monthsGenerated, today]
   );
+
+  // Calculate next unlocked month
+  const nextUnlockedMonth = useMemo(() => {
+    if (!currentMonth) return null;
+
+    const calendarMonth = today; // "YYYY-MM"
+    const allResolved = localTasks
+      .filter(t => t.month === currentMonth)
+      .every(t => t.status === 'done' || t.status === 'dropped');
+
+    let candidate: string | null = null;
+    if (allResolved || calendarMonth > currentMonth) {
+      // Next month after currentMonth
+      const [y, m] = currentMonth.split('-').map(Number);
+      const next = m === 12
+        ? `${y + 1}-01`
+        : `${y}-${String(m + 1).padStart(2, '0')}`;
+      candidate = next;
+    }
+
+    // Don't show if already generated
+    if (candidate && monthsGenerated.includes(candidate)) return null;
+    return candidate;
+  }, [currentMonth, localTasks, monthsGenerated, today]);
 
   const defaultMonth = currentMonth || visibleMonths.at(-1) || today;
   const [activeMonth, setActiveMonth] = useState(defaultMonth);
@@ -181,6 +207,7 @@ export default function MonthlyTaskBoard({
             return (
               <button
                 key={month}
+                type="button"
                 onClick={() => setActiveMonth(month)}
                 className={`px-4 py-2 text-sm font-medium border-b-2 -mb-0.5 transition-colors ${
                   activeMonth === month
@@ -193,14 +220,53 @@ export default function MonthlyTaskBoard({
             );
           })
         )}
+
+        {/* Next unlocked month tab */}
+        {nextUnlockedMonth && (
+          <button
+            type="button"
+            onClick={() => setActiveMonth(nextUnlockedMonth)}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-0.5 transition-colors border-dashed ${
+              activeMonth === nextUnlockedMonth
+                ? 'border-blue-500 text-blue-600'
+                : 'border-gray-300 text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {new Date(`${nextUnlockedMonth}-01`).toLocaleDateString('en-US', {
+              month: 'short',
+              year: '2-digit',
+            })}
+          </button>
+        )}
       </div>
 
       {/* Tasks for active month */}
       <div className="space-y-6">
         {monthTasks.length === 0 ? (
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center">
-            <p className="text-gray-500">No tasks for {new Date(`${activeMonth}-01`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
-          </div>
+          activeMonth === nextUnlockedMonth ? (
+            // Show generate prompt for next month
+            <div className="rounded-lg border-2 border-blue-200 bg-blue-50 p-8">
+              <div className="text-center space-y-4">
+                <p className="text-gray-700 font-medium">
+                  Generate tasks for {new Date(`${activeMonth}-01`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                </p>
+                <p className="text-sm text-gray-600">
+                  You can give the coach context based on your experience so far to help customise tasks better for you.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => onGenerateNewMonth?.(nextUnlockedMonth)}
+                  className="rounded bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                >
+                  Generate Tasks
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center">
+              <p className="text-gray-500">No tasks for {new Date(`${activeMonth}-01`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
+            </div>
+          )
         ) : (
           <>
             {([1, 2, 3, 4] as const).map(week => {

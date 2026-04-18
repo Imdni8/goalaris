@@ -1,8 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import GoalSmartCard from '@/components/goals/goal-smart-card';
-import MonthlyTaskBoard from '@/components/tasks/monthly-task-board';
+import GoalPageClient from '@/components/goals/goal-page-client';
 
 export default async function GoalDetailPage({ params }: { params: { id: string } }) {
   const supabase = await createClient();
@@ -35,33 +34,12 @@ export default async function GoalDetailPage({ params }: { params: { id: string 
           <Link href="/dashboard/goals" className="text-sm text-gray-600 hover:text-gray-900">
             &lt; Back
           </Link>
-          <button className="text-xs text-gray-400 hover:text-gray-600 border border-gray-200 rounded px-2 py-1">
-            &lt; coach
-          </button>
         </div>
       </div>
 
       {/* Main content */}
       <div className="mx-auto max-w-7xl px-6 py-8">
-        <div className="flex gap-8">
-          {/* Left sidebar: Goal card */}
-          <aside className="w-72 flex-shrink-0">
-            <div className="sticky top-8 flex flex-col gap-[10px]">
-              <GoalSmartCard goal={goal} />
-            </div>
-          </aside>
-
-          {/* Main area: Tasks */}
-          <main className="flex-1 min-w-0">
-            <h2 className="mb-6 text-xl font-semibold text-gray-900">Tasks</h2>
-            <MonthlyTaskBoard
-              goalId={goal.id}
-              currentMonth={goal.current_month}
-              monthsGenerated={goal.months_generated || []}
-              tasks={tasks || []}
-            />
-          </main>
-        </div>
+        <GoalPageClient goal={goal} tasks={tasks || []} />
       </div>
     </div>
   );
