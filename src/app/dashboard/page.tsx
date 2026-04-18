@@ -1,8 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import KanbanBoard from '@/components/tasks/kanban-board';
-import ProgressOverviewWidget from '@/components/dashboard/progress-overview-widget';
+import WeeklyPlanner from '@/components/tasks/weekly-planner';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -12,49 +9,44 @@ export default async function DashboardPage() {
     return null;
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
-
   const { data: goals } = await supabase
     .from('goals')
     .select('*')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
-  // Fetch all tasks from active goals
+  // Fetch all tasks from active goals for the current week ±2 weeks
   const activeGoalIds = goals?.filter((g) => g.status === 'active').map((g) => g.id) || [];
+
+  // Calculate date range: current week ±14 days
+  const today = new Date();
+  const monday = new Date(today);
+  const day = monday.getDay();
+  const diff = monday.getDate() - day + (day === 0 ? -6 : 1);
+  monday.setDate(diff);
+
+  const rangeStart = new Date(monday);
+  rangeStart.setDate(rangeStart.getDate() - 14);
+  const rangeEnd = new Date(monday);
+  rangeEnd.setDate(rangeEnd.getDate() + 14);
+
+  const rangeStartStr = rangeStart.toISOString().split('T')[0];
+  const rangeEndStr = rangeEnd.toISOString().split('T')[0];
+
   const { data: tasks } = activeGoalIds.length > 0
     ? await supabase
         .from('tasks')
         .select('*')
         .in('goal_id', activeGoalIds)
-        .order('created_at', { ascending: false })
+        .gte('due_date', rangeStartStr)
+        .lte('due_date', rangeEndStr)
+        .order('due_date', { ascending: true })
     : { data: [] };
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">
-          Welcome, {profile?.full_name || 'Professional'}!
-        </h1>
-        <p className="mt-2 text-gray-600">Track your annual goals and prepare for self-assessment</p>
-      </div>
-
-      {/* Progress Overview Widget */}
-      <ProgressOverviewWidget userId={user.id} />
-
-      {/* Kanban Board */}
-      {tasks && tasks.length > 0 && (
-        <div className="mt-8">
-          <KanbanBoard
-            initialTasks={tasks}
-            goals={goals?.filter((g) => g.status === 'active') || []}
-          />
-        </div>
-      )}
-    </div>
+    <WeeklyPlanner
+      initialTasks={tasks || []}
+      goals={goals?.filter((g) => g.status === 'active') || []}
+    />
   );
 }
