@@ -209,6 +209,9 @@ export default function ConversationalGoalForm() {
         .eq('user_id', userData.user.id);
       const goalNumber = (count ?? 0) + 1;
 
+      const isIsoDate = /^\d{4}-\d{2}-\d{2}$/.test(goalDraft.time_bound || '');
+      const timeBoundValue = isIsoDate ? goalDraft.time_bound : null;
+
       const { data: insertedGoal, error: insertError } = await supabase.from('goals').insert([
         {
           user_id: userData.user.id,
@@ -218,7 +221,7 @@ export default function ConversationalGoalForm() {
           measurable: goalDraft.measurable || null,
           achievable: goalDraft.achievable || null,
           relevant: goalDraft.relevant || null,
-          time_bound: goalDraft.time_bound || null,
+          time_bound: timeBoundValue,
           status: 'active',
           ai_suggested: true,
           goal_number: goalNumber,
@@ -415,11 +418,10 @@ export default function ConversationalGoalForm() {
                 Time-bound - Target completion date
               </label>
               <input
-                type="text"
+                type="date"
                 value={goalDraft.time_bound}
                 onChange={(e) => setGoalDraft({ ...goalDraft, time_bound: e.target.value })}
                 className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none"
-                placeholder="e.g., Q4 2024, December 31, 2024"
               />
             </div>
           </div>
