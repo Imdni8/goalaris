@@ -7,6 +7,7 @@ import {
   getClientIdentifier,
   createRateLimitResponse,
 } from '@/lib/utils/rate-limiter';
+import { snapToWeekdayInRange } from '@/lib/utils/weekdays';
 
 const MODEL = 'gemini-2.5-flash-lite';
 const API_ENDPOINT = 'https://aiplatform.googleapis.com/v1/publishers/google/models';
@@ -267,12 +268,13 @@ export async function POST(request: NextRequest) {
       startOrderIndex = (existingTasks[0].order_index || 0) + 1;
     }
 
-    // Insert new tasks
+    // Insert new tasks. Snap any weekend due_date the model returned back
+    // to the nearest weekday inside [startDate, endDate].
     const tasksToInsert = (newTasks || []).map((task: any, index: number) => ({
       goal_id: goalId,
       title: task.title,
       description: task.description || null,
-      due_date: task.due_date || null,
+      due_date: task.due_date ? snapToWeekdayInRange(task.due_date, startDate, endDate) : null,
       month: newMonth,
       status: 'todo',
       order_index: startOrderIndex + index,

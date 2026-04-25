@@ -30,7 +30,7 @@ interface GoalPageClientProps {
   tasks: TaskRow[];
 }
 
-export default function GoalPageClient({ goal, tasks: initialTasks }: GoalPageClientProps) {
+export default function GoalPageClient({ goal: initialGoal, tasks: initialTasks }: GoalPageClientProps) {
   const supabase = createClient();
   const [coachPanelOpen, setCoachPanelOpen] = useState(false);
   const [checkInMode, setCheckInMode] = useState<{
@@ -38,6 +38,7 @@ export default function GoalPageClient({ goal, tasks: initialTasks }: GoalPageCl
     previousMonth: string;
   } | null>(null);
   const [tasks, setTasks] = useState<TaskRow[]>(initialTasks);
+  const [goal, setGoal] = useState<any>(initialGoal);
 
   const handleGenerateNewMonth = (newMonth: string) => {
     const previousMonth = goal.current_month;
@@ -45,19 +46,20 @@ export default function GoalPageClient({ goal, tasks: initialTasks }: GoalPageCl
     setCoachPanelOpen(true);
   };
 
-  const handleTasksGenerated = async (newTasks: any[]) => {
-    // Refetch all tasks from the server
-    const { data: updatedTasks } = await supabase
-      .from('tasks')
-      .select('*')
-      .eq('goal_id', goal.id)
-      .order('due_date', { ascending: true, nullsFirst: false });
+  const handleTasksGenerated = async () => {
+    // Refetch tasks AND goal so months_generated / current_month are fresh.
+    const [tasksRes, goalRes] = await Promise.all([
+      supabase
+        .from('tasks')
+        .select('*')
+        .eq('goal_id', goal.id)
+        .order('due_date', { ascending: true, nullsFirst: false }),
+      supabase.from('goals').select('*').eq('id', goal.id).single(),
+    ]);
 
-    if (updatedTasks) {
-      setTasks(updatedTasks as TaskRow[]);
-    }
+    if (tasksRes.data) setTasks(tasksRes.data as TaskRow[]);
+    if (goalRes.data) setGoal(goalRes.data);
 
-    // Close coach panel and reset check-in mode
     setCheckInMode(null);
     setCoachPanelOpen(false);
   };

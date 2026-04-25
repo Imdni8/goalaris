@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { ensureAnyTaskStatus } from '@/lib/utils/null-safe';
 import { CheckCircle2, Circle } from 'lucide-react';
@@ -57,11 +57,19 @@ export default function MonthlyTaskBoard({
   const [localTasks, setLocalTasks] = useState<TaskRow[]>(tasks);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
 
-  // Determine which months to show as tabs
+  // Sync local state when the parent refetches tasks (e.g., after the
+  // monthly check-in generates next month's tasks).
+  useEffect(() => {
+    setLocalTasks(tasks);
+  }, [tasks]);
+
+  // Show every month that has been generated. We used to gate this by
+  // `m <= calendar-today`, but the monthly check-in deliberately generates
+  // next month's tasks and the user must be able to see them.
   const today = new Date().toISOString().slice(0, 7);
   const visibleMonths = useMemo(
-    () => monthsGenerated.filter(m => m <= today).sort(),
-    [monthsGenerated, today]
+    () => [...monthsGenerated].sort(),
+    [monthsGenerated]
   );
 
   // Calculate next unlocked month
