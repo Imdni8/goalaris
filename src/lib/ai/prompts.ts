@@ -47,9 +47,10 @@ export const TASK_BREAKDOWN_PROMPT = (goal: {
 }, range?: { startDate: string; endDate: string }, context?: string) => {
   const rangeContext = range
     ? `\nGenerate tasks for the period from ${range.startDate} to ${range.endDate} (inclusive).
-- Choose a task count that scales with the window: roughly 1 task per 3 days, with a minimum of 1 and a maximum of 10. For very short windows (1–3 days), generate just 1–2 tasks.
 - Assign each task a specific due_date in YYYY-MM-DD format that falls within [${range.startDate}, ${range.endDate}]. Do not use any date outside this range.
-- Spread tasks across the available days; do not bunch them all on the same day.`
+- IMPORTANT: due_dates MUST fall on a weekday (Monday–Friday). Never assign a Saturday or Sunday as a due_date.
+- Choose a task count that scales with the number of available WEEKDAYS in the window: roughly 1 task per 3 weekdays, with a minimum of 1 and a maximum of 10. For very short windows (1–3 weekdays), generate just 1–2 tasks.
+- Spread tasks across the available weekdays; do not bunch them all on the same day.`
     : '';
 
   const userContextSection = context

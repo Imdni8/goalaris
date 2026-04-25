@@ -9,6 +9,30 @@ import {
   createRateLimitResponse,
 } from '@/lib/utils/rate-limiter';
 
+// Snap `date` to the nearest weekday (Mon–Fri) inside [start, end].
+// Walks backward first, then forward. Returns null if no weekday exists in range.
+function snapToWeekdayInRange(date: string, start: string, end: string): string | null {
+  const startD = new Date(`${start}T00:00:00.000Z`);
+  const endD = new Date(`${end}T00:00:00.000Z`);
+  const target = new Date(`${date}T00:00:00.000Z`);
+  const clamped = new Date(Math.min(endD.getTime(), Math.max(startD.getTime(), target.getTime())));
+
+  const isWeekday = (d: Date) => d.getUTCDay() !== 0 && d.getUTCDay() !== 6;
+
+  const back = new Date(clamped);
+  while (back >= startD) {
+    if (isWeekday(back)) return back.toISOString().slice(0, 10);
+    back.setUTCDate(back.getUTCDate() - 1);
+  }
+  const fwd = new Date(clamped);
+  fwd.setUTCDate(fwd.getUTCDate() + 1);
+  while (fwd <= endD) {
+    if (isWeekday(fwd)) return fwd.toISOString().slice(0, 10);
+    fwd.setUTCDate(fwd.getUTCDate() + 1);
+  }
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -55,6 +79,15 @@ export async function POST(request: NextRequest) {
     const lastDay = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 0));
     const endDate = lastDay.toISOString().slice(0, 10);
 
+    // Reject if no weekdays remain in the window (e.g., generating on Saturday
+    // with only Sunday left in the month).
+    if (!snapToWeekdayInRange(endDate, startDate, endDate)) {
+      return NextResponse.json(
+        { error: 'No weekdays remaining this month. Try again next month.' },
+        { status: 400 }
+      );
+    }
+
     // Fetch the goal
     const { data: goal, error: goalError } = await supabase
       .from('goals')
@@ -89,12 +122,13 @@ export async function POST(request: NextRequest) {
       ? existingTasks[0].order_index + 1
       : 0;
 
-    // Insert generated tasks
+    // Insert generated tasks. Snap any weekend due_date the model returned
+    // back to the most recent weekday on or before it, clamped to startDate.
     const tasksToInsert = taskBreakdown.map((task, index) => ({
       goal_id: goalId,
       title: task.title,
       description: task.description,
-      due_date: task.due_date || null,
+      due_date: task.due_date ? snapToWeekdayInRange(task.due_date, startDate, endDate) : null,
       month: targetMonth,
       status: 'pending' as const,
       order_index: task.order_index !== undefined ? task.order_index : startOrderIndex + index,
