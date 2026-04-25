@@ -44,15 +44,12 @@ export const TASK_BREAKDOWN_PROMPT = (goal: {
   achievable: string;
   relevant: string;
   time_bound: string;
-}, month?: string, context?: string) => {
-  const monthContext = month
-    ? `\nGenerate tasks specifically for the month of ${month}.
-Assign each task a specific due_date (YYYY-MM-DD format) distributed across the 4 weeks:
-- Week 1: days 1-7
-- Week 2: days 8-14
-- Week 3: days 15-21
-- Week 4: days 22-end of month
-Spread tasks evenly so each week has at least 1 task.`
+}, range?: { startDate: string; endDate: string }, context?: string) => {
+  const rangeContext = range
+    ? `\nGenerate tasks for the period from ${range.startDate} to ${range.endDate} (inclusive).
+- Choose a task count that scales with the window: roughly 1 task per 3 days, with a minimum of 1 and a maximum of 10. For very short windows (1–3 days), generate just 1–2 tasks.
+- Assign each task a specific due_date in YYYY-MM-DD format that falls within [${range.startDate}, ${range.endDate}]. Do not use any date outside this range.
+- Spread tasks across the available days; do not bunch them all on the same day.`
     : '';
 
   const userContextSection = context
@@ -69,9 +66,9 @@ Goal: ${goal.title}
 - Achievable: ${goal.achievable}
 - Relevant: ${goal.relevant}
 - Target Date: ${goal.time_bound}
-${monthContext}${userContextSection}
+${rangeContext}${userContextSection}
 
-Generate 5-10 concrete, actionable tasks that:
+Generate concrete, actionable tasks that:
 1. Progress logically from start to completion
 2. Are specific enough to track
 3. Include realistic milestones

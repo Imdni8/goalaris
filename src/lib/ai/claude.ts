@@ -74,7 +74,7 @@ export async function generateSmartGoal(rawGoalText: string): Promise<SmartGoal>
 /**
  * Break down a goal into actionable tasks
  * @param goal The goal to break down
- * @param month Optional month in YYYY-MM format for scoped task generation
+ * @param range Optional date range (YYYY-MM-DD) to bound task due dates
  * @param context Optional user context from check-in for task customization
  */
 export async function generateTaskBreakdown(goal: {
@@ -84,8 +84,8 @@ export async function generateTaskBreakdown(goal: {
   achievable: string;
   relevant: string;
   time_bound: string;
-}, month?: string, context?: string): Promise<TaskBreakdown> {
-  const text = await callGemini(TASK_BREAKDOWN_PROMPT(goal, month, context));
+}, range?: { startDate: string; endDate: string }, context?: string): Promise<TaskBreakdown> {
+  const text = await callGemini(TASK_BREAKDOWN_PROMPT(goal, range, context));
   return parseTaskBreakdownResponse(text);
 }
 

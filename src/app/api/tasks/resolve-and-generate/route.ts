@@ -232,7 +232,15 @@ export async function POST(request: NextRequest) {
       .join('\n\n');
 
     // Generate new month's tasks
+    // Range = full newMonth (start of newMonth → end of newMonth). The check-in
+    // flow can target a future month, so we don't clamp to "today" here.
     console.log('[resolve-and-generate] Generating tasks for new month...');
+    const [yearStr, monthStr] = newMonth.split('-');
+    const year = parseInt(yearStr, 10);
+    const monthIdx = parseInt(monthStr, 10);
+    const startDate = `${newMonth}-01`;
+    const endDate = new Date(Date.UTC(year, monthIdx, 0)).toISOString().slice(0, 10);
+
     const newTasks = await generateTaskBreakdown(
       {
         title: goal.title,
@@ -242,7 +250,7 @@ export async function POST(request: NextRequest) {
         relevant: goal.relevant || '',
         time_bound: goal.time_bound || '',
       },
-      newMonth,
+      { startDate, endDate },
       contextFromConversation
     );
 

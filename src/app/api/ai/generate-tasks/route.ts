@@ -38,8 +38,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid input: goalId is required' }, { status: 400 });
     }
 
-    // Default to current month if not provided
-    const targetMonth = month || new Date().toISOString().slice(0, 7);
+    // Compute today + current month in UTC; only support current month for now
+    const today = new Date();
+    const currentMonth = today.toISOString().slice(0, 7);
+    const targetMonth = month || currentMonth;
+
+    if (targetMonth !== currentMonth) {
+      return NextResponse.json(
+        { error: 'Tasks can only be generated for the current month.' },
+        { status: 400 }
+      );
+    }
+
+    // Range: from today through the last day of the current month (inclusive)
+    const startDate = today.toISOString().slice(0, 10);
+    const lastDay = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 0));
+    const endDate = lastDay.toISOString().slice(0, 10);
 
     // Fetch the goal
     const { data: goal, error: goalError } = await supabase
@@ -53,7 +67,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
     }
 
-    // Generate task breakdown using Gemini
+    // Generate task breakdown using Gemini, bounded to [startDate, endDate]
     const taskBreakdown = await generateTaskBreakdown({
       title: goal.title,
       specific: goal.specific || '',
@@ -61,7 +75,7 @@ export async function POST(request: NextRequest) {
       achievable: goal.achievable || '',
       relevant: goal.relevant || '',
       time_bound: goal.time_bound || '',
-    }, targetMonth);
+    }, { startDate, endDate });
 
     // Get current max order_index for this goal
     const { data: existingTasks } = await supabase
