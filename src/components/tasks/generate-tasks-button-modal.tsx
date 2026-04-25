@@ -9,12 +9,18 @@ interface GenerateTasksButtonModalProps {
   onClose: (success?: boolean) => void;
 }
 
+interface ConfirmNextMonthState {
+  currentMonthLabel: string;
+  proposedMonthLabel: string;
+}
+
 export default function GenerateTasksButtonModal({ goalId, onClose }: GenerateTasksButtonModalProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmNextMonth, setConfirmNextMonth] = useState<ConfirmNextMonthState | null>(null);
 
-  async function handleGenerateTasks() {
+  async function handleGenerateTasks(acceptNextMonth = false) {
     setLoading(true);
     setError(null);
 
@@ -22,12 +28,20 @@ export default function GenerateTasksButtonModal({ goalId, onClose }: GenerateTa
       const response = await fetch('/api/ai/generate-tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ goalId }),
+        body: JSON.stringify({ goalId, acceptNextMonth }),
       });
 
+      const data = await response.json();
       if (!response.ok) {
-        const data = await response.json();
         throw new Error(data.error || 'Failed to generate tasks');
+      }
+
+      if (data.needsConfirmation) {
+        setConfirmNextMonth({
+          currentMonthLabel: data.currentMonthLabel,
+          proposedMonthLabel: data.proposedMonthLabel,
+        });
+        return;
       }
 
       router.refresh();
@@ -57,9 +71,15 @@ export default function GenerateTasksButtonModal({ goalId, onClose }: GenerateTa
 
         {/* Content */}
         <div className="px-6 py-6">
-          <p className="text-gray-700">
-            Generate AI-powered tasks for this goal. Tasks will be created for the current month and distributed across weeks.
-          </p>
+          {confirmNextMonth ? (
+            <p className="text-gray-700">
+              No weekdays remain in {confirmNextMonth.currentMonthLabel}. Generate tasks for {confirmNextMonth.proposedMonthLabel} instead?
+            </p>
+          ) : (
+            <p className="text-gray-700">
+              Generate AI-powered tasks for this goal. Tasks will be created from today through the end of the current month, on weekdays only.
+            </p>
+          )}
 
           {error && (
             <div className="mt-4 rounded-lg bg-red-50 p-4 text-sm text-red-700">
@@ -79,11 +99,15 @@ export default function GenerateTasksButtonModal({ goalId, onClose }: GenerateTa
           </button>
           <button
             type="button"
-            onClick={handleGenerateTasks}
+            onClick={() => handleGenerateTasks(!!confirmNextMonth)}
             disabled={loading}
             className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
-            {loading ? 'Generating...' : 'Generate Tasks'}
+            {loading
+              ? 'Generating...'
+              : confirmNextMonth
+                ? `Generate for ${confirmNextMonth.proposedMonthLabel}`
+                : 'Generate Tasks'}
           </button>
         </div>
       </div>
