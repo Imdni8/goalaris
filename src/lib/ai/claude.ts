@@ -114,10 +114,10 @@ export async function generateAssessmentSummary(
     description?: string;
     specific?: string;
     measurable?: string;
-    logs: Array<{
-      action_description: string;
-      impact_notes?: string;
-      logged_at: string;
+    completedTasks: Array<{
+      title: string;
+      completion_note?: string;
+      completed_at: string;
     }>;
   }>,
   dateRange?: { start: string; end: string }

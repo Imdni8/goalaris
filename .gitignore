@@ -55,6 +55,7 @@ imp_stuff.txt
 
 # internal files
 testing/
+docs/
 CLAUDE.md
 .claude/settings.local.json
 marketing_posts/

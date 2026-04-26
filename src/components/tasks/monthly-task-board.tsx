@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { ensureAnyTaskStatus } from '@/lib/utils/null-safe';
 import { CheckCircle2, Circle } from 'lucide-react';
 import GenerateTasksButtonModal from './generate-tasks-button-modal';
+import TaskDetailModal, { TaskUpdate } from './task-detail-modal';
 
 interface TaskRow {
   id: string;
@@ -56,6 +57,7 @@ export default function MonthlyTaskBoard({
   const supabase = createClient();
   const [localTasks, setLocalTasks] = useState<TaskRow[]>(tasks);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   // Sync local state when the parent refetches tasks (e.g., after the
   // monthly check-in generates next month's tasks).
@@ -165,6 +167,25 @@ export default function MonthlyTaskBoard({
       // Revert optimistic update on error
       setLocalTasks(tasks);
     }
+  }
+
+  function handleTaskUpdated(update: TaskUpdate) {
+    setLocalTasks(prev =>
+      prev.map(t =>
+        t.id === update.id
+          ? {
+              ...t,
+              ...(update.completion_note !== undefined
+                ? { completion_note: update.completion_note }
+                : {}),
+              ...(update.status !== undefined ? { status: update.status } : {}),
+              ...(update.completed_at !== undefined
+                ? { completed_at: update.completed_at }
+                : {}),
+            }
+          : t
+      )
+    );
   }
 
   async function handleGenerateModalClose(success?: boolean) {
@@ -285,55 +306,16 @@ export default function MonthlyTaskBoard({
                 <div key={`week-${week}`}>
                   <h3 className="mb-3 text-sm font-semibold text-gray-700">{getWeekLabel(week)}</h3>
                   <div className="space-y-2">
-                    {weekTasks.map(task => {
-                      const taskStatus = ensureAnyTaskStatus(task.status);
-                      const isDone = taskStatus === 'done';
-
-                      return (
-                        <div
-                          key={task.id}
-                          className={`flex gap-3 rounded-lg border border-gray-200 p-3 ${
-                            isDone ? 'bg-gray-50' : 'bg-white hover:bg-gray-50'
-                          } transition-colors ${isPastMonth ? 'cursor-default' : 'cursor-pointer'}`}
-                          onClick={() => !isPastMonth && toggleTask(task.id, task.status)}
-                        >
-                          {/* Checkbox */}
-                          <div className="flex-shrink-0 pt-0.5">
-                            {isDone ? (
-                              <CheckCircle2 size={20} className="text-green-600" />
-                            ) : (
-                              <Circle size={20} className="text-gray-300" />
-                            )}
-                          </div>
-
-                          {/* Task content */}
-                          <div className="flex-1 min-w-0">
-                            <p
-                              className={`text-sm font-medium ${
-                                isDone
-                                  ? 'line-through text-gray-500'
-                                  : 'text-gray-900'
-                              }`}
-                            >
-                              {task.title}
-                            </p>
-                            {task.description && (
-                              <p className={`text-xs mt-1 ${isDone ? 'text-gray-400' : 'text-gray-600'}`}>
-                                {task.description}
-                              </p>
-                            )}
-                            {task.due_date && (
-                              <p className="text-xs text-gray-500 mt-1">
-                                Due: {new Date(task.due_date).toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                })}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
+                    {weekTasks.map(task => (
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        showDueDate
+                        toggleDisabled={isPastMonth}
+                        onToggle={() => toggleTask(task.id, task.status)}
+                        onOpen={() => setSelectedTaskId(task.id)}
+                      />
+                    ))}
                   </div>
                 </div>
               );
@@ -344,44 +326,15 @@ export default function MonthlyTaskBoard({
               <div>
                 <h3 className="mb-3 text-sm font-semibold text-gray-700">Unscheduled</h3>
                 <div className="space-y-2">
-                  {tasksByWeek.unscheduled.map(task => {
-                    const taskStatus = ensureAnyTaskStatus(task.status);
-                    const isDone = taskStatus === 'done';
-
-                    return (
-                      <div
-                        key={task.id}
-                        className={`flex gap-3 rounded-lg border border-gray-200 p-3 ${
-                          isDone ? 'bg-gray-50' : 'bg-white hover:bg-gray-50'
-                        } transition-colors ${isPastMonth ? 'cursor-default' : 'cursor-pointer'}`}
-                        onClick={() => !isPastMonth && toggleTask(task.id, task.status)}
-                      >
-                        <div className="flex-shrink-0 pt-0.5">
-                          {isDone ? (
-                            <CheckCircle2 size={20} className="text-green-600" />
-                          ) : (
-                            <Circle size={20} className="text-gray-300" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p
-                            className={`text-sm font-medium ${
-                              isDone
-                                ? 'line-through text-gray-500'
-                                : 'text-gray-900'
-                            }`}
-                          >
-                            {task.title}
-                          </p>
-                          {task.description && (
-                            <p className={`text-xs mt-1 ${isDone ? 'text-gray-400' : 'text-gray-600'}`}>
-                              {task.description}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {tasksByWeek.unscheduled.map(task => (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      toggleDisabled={isPastMonth}
+                      onToggle={() => toggleTask(task.id, task.status)}
+                      onOpen={() => setSelectedTaskId(task.id)}
+                    />
+                  ))}
                 </div>
               </div>
             )}
@@ -394,44 +347,14 @@ export default function MonthlyTaskBoard({
               <div className="border-t border-gray-200 pt-6">
                 <h3 className="mb-3 text-sm font-semibold text-gray-700">Previously Created Tasks</h3>
                 <div className="space-y-2">
-                  {legacyTasks.map(task => {
-                    const taskStatus = ensureAnyTaskStatus(task.status);
-                    const isDone = taskStatus === 'done';
-
-                    return (
-                      <div
-                        key={task.id}
-                        className={`flex gap-3 rounded-lg border border-gray-200 p-3 ${
-                          isDone ? 'bg-gray-50' : 'bg-white hover:bg-gray-50'
-                        } transition-colors cursor-pointer`}
-                        onClick={() => toggleTask(task.id, task.status)}
-                      >
-                        <div className="flex-shrink-0 pt-0.5">
-                          {isDone ? (
-                            <CheckCircle2 size={20} className="text-green-600" />
-                          ) : (
-                            <Circle size={20} className="text-gray-300" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p
-                            className={`text-sm font-medium ${
-                              isDone
-                                ? 'line-through text-gray-500'
-                                : 'text-gray-900'
-                            }`}
-                          >
-                            {task.title}
-                          </p>
-                          {task.description && (
-                            <p className={`text-xs mt-1 ${isDone ? 'text-gray-400' : 'text-gray-600'}`}>
-                              {task.description}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {legacyTasks.map(task => (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      onToggle={() => toggleTask(task.id, task.status)}
+                      onOpen={() => setSelectedTaskId(task.id)}
+                    />
+                  ))}
                 </div>
               </div>
             )}
@@ -446,6 +369,81 @@ export default function MonthlyTaskBoard({
           onClose={handleGenerateModalClose}
         />
       )}
+
+      {/* Task detail modal */}
+      <TaskDetailModal
+        taskId={selectedTaskId}
+        isOpen={!!selectedTaskId}
+        onClose={() => setSelectedTaskId(null)}
+        onTaskUpdated={handleTaskUpdated}
+      />
     </>
+  );
+}
+
+interface TaskCardProps {
+  task: TaskRow;
+  showDueDate?: boolean;
+  toggleDisabled?: boolean;
+  onToggle: () => void;
+  onOpen: () => void;
+}
+
+function TaskCard({ task, showDueDate, toggleDisabled, onToggle, onOpen }: TaskCardProps) {
+  const isDone = ensureAnyTaskStatus(task.status) === 'done';
+
+  return (
+    <div
+      className={`flex gap-3 rounded-lg border border-gray-200 p-3 ${
+        isDone ? 'bg-gray-50' : 'bg-white'
+      } transition-colors`}
+    >
+      {/* Checkbox — its own hit target */}
+      <button
+        type="button"
+        onClick={e => {
+          e.stopPropagation();
+          if (!toggleDisabled) onToggle();
+        }}
+        className="flex-shrink-0 -m-1 p-1 hover:opacity-70 disabled:cursor-not-allowed"
+        disabled={toggleDisabled}
+        aria-label={isDone ? 'Mark incomplete' : 'Mark complete'}
+      >
+        {isDone ? (
+          <CheckCircle2 size={20} className="text-green-600" />
+        ) : (
+          <Circle size={20} className="text-gray-300" />
+        )}
+      </button>
+
+      {/* Body — opens detail modal */}
+      <button
+        type="button"
+        onClick={onOpen}
+        className="flex-1 min-w-0 text-left -m-1 p-1 rounded hover:bg-gray-50 transition-colors cursor-pointer"
+      >
+        <p
+          className={`text-sm font-medium ${
+            isDone ? 'line-through text-gray-500' : 'text-gray-900'
+          }`}
+        >
+          {task.title}
+        </p>
+        {task.description && (
+          <p className={`text-xs mt-1 ${isDone ? 'text-gray-400' : 'text-gray-600'}`}>
+            {task.description}
+          </p>
+        )}
+        {showDueDate && task.due_date && (
+          <p className="text-xs text-gray-500 mt-1">
+            Due:{' '}
+            {new Date(task.due_date).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+            })}
+          </p>
+        )}
+      </button>
+    </div>
   );
 }

@@ -225,6 +225,38 @@ Goalaris is an AI-powered career coaching platform for working professionals at 
 
 ---
 
+### PC-10: Goals Page UI Refresh + Multi-Select & Bulk Delete
+
+**Problem:** The goals page currently shows goals as a simple list/grid that doesn't scale well as users accumulate goals across months. There's also no efficient way to clean up obsolete or test goals — users have to delete them one at a time, which is tedious during pruning or end-of-cycle cleanup.
+
+**Solution:** Refresh the goals page UI for better hierarchy, scannability, and density, and introduce a multi-select mode that allows users to delete several goals in a single action.
+
+**UI improvements:**
+
+- Cleaner card design consistent with the goal details page (PC-4) — goal number eyebrow, title, status chip, due/time-bound info
+- Better visual grouping by status (Active, Completed, Archived) with collapsible sections
+- Improved empty state and loading skeletons
+- Sort/filter controls (by status, by created date, by goal number)
+- Hover/focus states reveal quick actions (open, edit, delete) without crowding the resting card
+
+**Multi-select behavior:**
+
+- "Select" mode toggle in the page header enters selection mode
+- Each goal card shows a checkbox in selection mode
+- Selecting one or more goals reveals a sticky action bar with the count and a "Delete selected" button
+- "Delete selected" opens a confirmation dialog listing the goals being deleted (titles + count)
+- On confirm: cascade-delete goals and their tasks/logs/attachments per existing referential integrity rules
+- "Cancel" exits selection mode and clears selection
+- Keyboard accessible: Space toggles selection, Esc exits selection mode
+
+**Constraints:**
+
+- Deletion is permanent (no soft-delete in this iteration); the confirmation dialog must make the destructive nature clear
+- Selection state is local to the page (does not persist across navigation)
+- Bulk delete uses a single API call (not N individual deletes) to keep the operation atomic and fast
+
+---
+
 ## Implementation Plan
 
 This plan is structured for sequential implementation with Claude Code. Each phase builds on the previous one. Phases are ordered by dependency and user impact.

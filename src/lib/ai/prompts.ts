@@ -117,10 +117,10 @@ export const ASSESSMENT_SUMMARY_PROMPT = (
     description?: string;
     specific?: string;
     measurable?: string;
-    logs: Array<{
-      action_description: string;
-      impact_notes?: string;
-      logged_at: string;
+    completedTasks: Array<{
+      title: string;
+      completion_note?: string;
+      completed_at: string;
     }>;
   }>,
   dateRange?: { start: string; end: string }
@@ -129,7 +129,7 @@ You are an expert career coach helping a professional write their self-assessmen
 
 ${dateRange ? `Review Period: ${dateRange.start} to ${dateRange.end}\n` : ''}
 
-Here are their goals and the progress they've logged during this period:
+Here are their goals and the tasks they completed during this period. Some completions include a note about what they did; others are silent — for silent completions, treat the task title itself as evidence of work delivered.
 
 ${goals.map((goal) => `
 ### Goal: ${goal.title}
@@ -137,9 +137,9 @@ ${goal.description ? `Description: ${goal.description}` : ''}
 ${goal.specific ? `What (Specific): ${goal.specific}` : ''}
 ${goal.measurable ? `Success Metrics (Measurable): ${goal.measurable}` : ''}
 
-Progress Logged (${goal.logs.length} actions):
-${goal.logs.map((log) => `
-- ${log.action_description}${log.impact_notes ? `\n  Impact: ${log.impact_notes}` : ''}`).join('\n')}
+Completed Tasks (${goal.completedTasks.length}):
+${goal.completedTasks.map((task) => `
+- ${task.title}${task.completion_note ? `\n  Note: ${task.completion_note}` : ''}`).join('\n')}
 `).join('\n---\n')}
 
 Write a compelling self-assessment summary (3-4 paragraphs) in FIRST PERSON that:
@@ -147,7 +147,7 @@ Write a compelling self-assessment summary (3-4 paragraphs) in FIRST PERSON that
 1. **Opening**: Summarize overall achievements and themes across all goals
 2. **Key Accomplishments**: Highlight specific, quantifiable results and impact
    - Use actual metrics from the "Measurable" sections
-   - Reference concrete deliverables and outcomes
+   - Reference concrete completed tasks and any notes about what was delivered
 3. **Growth & Learning**: Demonstrate skills developed and challenges overcome
    - Mention problem-solving, collaboration, or innovation
 4. **Impact**: Show value delivered to the team, department, or company
@@ -156,10 +156,11 @@ Write a compelling self-assessment summary (3-4 paragraphs) in FIRST PERSON that
 Guidelines:
 - Write in first person ("I accomplished...", "I delivered...")
 - Use confident, professional language suitable for a formal review
-- Be specific and evidence-based (reference actual logged work)
+- Be specific and evidence-based — every claim should tie to a completed task or its note
+- Where notes are present, lean on them for richer detail; where absent, work from the task title
 - Quantify impact where possible (%, numbers, timelines)
 - Maintain a professional, achievement-focused tone
-- NO fluff or generic statements - every claim should tie to logged actions
+- NO fluff or generic statements
 
 Return ONLY the narrative text, no JSON, no markdown headers, just the paragraphs.
 `;

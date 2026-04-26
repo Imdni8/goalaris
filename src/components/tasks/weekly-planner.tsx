@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { ensureAnyTaskStatus } from '@/lib/utils/null-safe';
 import { CheckCircle2, Circle, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
+import TaskDetailModal, { TaskUpdate } from './task-detail-modal';
 
 interface TaskRow {
   id: string;
@@ -89,15 +90,10 @@ export default function WeeklyPlanner({ initialTasks, goals }: WeeklyPlannerProp
   const supabase = createClient();
   const [weekOffset, setWeekOffset] = useState(0);
   const [localTasks, setLocalTasks] = useState<TaskRow[]>(initialTasks);
-  const [notePrompt, setNotePrompt] = useState<{
-    taskId: string;
-    show: boolean;
-  } | null>(null);
-  const [noteText, setNoteText] = useState('');
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   const today = new Date();
   const weekDays = useMemo(() => getWeekDays(weekOffset), [weekOffset]);
-  const currentWeekStart = formatDate(weekDays[0]);
 
   // Group tasks by day
   const tasksByDay = useMemo(() => {
@@ -125,13 +121,6 @@ export default function WeeklyPlanner({ initialTasks, goals }: WeeklyPlannerProp
     const newStatus = currentStatusNormalized === 'done' ? 'pending' : 'done';
     const completedAt = newStatus === 'done' ? new Date().toISOString() : null;
 
-    // If transitioning to done, show note prompt
-    if (newStatus === 'done') {
-      setNotePrompt({ taskId, show: true });
-      setNoteText('');
-    }
-
-    // Optimistic update
     setLocalTasks(prev =>
       prev.map(t =>
         t.id === taskId
@@ -143,37 +132,31 @@ export default function WeeklyPlanner({ initialTasks, goals }: WeeklyPlannerProp
     try {
       await supabase
         .from('tasks')
-        .update({
-          status: newStatus,
-          completed_at: completedAt,
-        })
+        .update({ status: newStatus, completed_at: completedAt })
         .eq('id', taskId);
     } catch (error) {
       console.error('Failed to toggle task:', error);
-      // Revert optimistic update on error
       setLocalTasks(initialTasks);
     }
   }
 
-  async function saveCompletionNote(taskId: string) {
-    try {
-      await supabase
-        .from('tasks')
-        .update({
-          completion_note: noteText,
-        })
-        .eq('id', taskId);
-
-      setNotePrompt(null);
-      setNoteText('');
-    } catch (error) {
-      console.error('Failed to save completion note:', error);
-    }
-  }
-
-  function skipNote() {
-    setNotePrompt(null);
-    setNoteText('');
+  function handleTaskUpdated(update: TaskUpdate) {
+    setLocalTasks(prev =>
+      prev.map(t =>
+        t.id === update.id
+          ? {
+              ...t,
+              ...(update.completion_note !== undefined
+                ? { completion_note: update.completion_note }
+                : {}),
+              ...(update.status !== undefined ? { status: update.status } : {}),
+              ...(update.completed_at !== undefined
+                ? { completed_at: update.completed_at }
+                : {}),
+            }
+          : t
+      )
+    );
   }
 
   const isCurrentWeek = weekOffset === 0;
@@ -192,6 +175,7 @@ export default function WeeklyPlanner({ initialTasks, goals }: WeeklyPlannerProp
 
         <div className="flex items-center gap-3">
           <button
+            type="button"
             onClick={() => setWeekOffset(weekOffset - 1)}
             className="inline-flex items-center justify-center w-10 h-10 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
             aria-label="Previous week"
@@ -201,6 +185,7 @@ export default function WeeklyPlanner({ initialTasks, goals }: WeeklyPlannerProp
 
           {!isCurrentWeek && (
             <button
+              type="button"
               onClick={() => setWeekOffset(0)}
               className="px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg border border-blue-200 transition-colors"
             >
@@ -209,6 +194,7 @@ export default function WeeklyPlanner({ initialTasks, goals }: WeeklyPlannerProp
           )}
 
           <button
+            type="button"
             onClick={() => setWeekOffset(weekOffset + 1)}
             className="inline-flex items-center justify-center w-10 h-10 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
             aria-label="Next week"
@@ -220,38 +206,27 @@ export default function WeeklyPlanner({ initialTasks, goals }: WeeklyPlannerProp
 
       {/* Week grid */}
       <div className="grid grid-cols-5 gap-4">
-        {weekDays.map((day, idx) => {
+        {weekDays.map(day => {
           const dayKey = formatDate(day);
           const tasksForDay = tasksByDay[dayKey] || [];
-          const isToday =
-            day.toDateString() === today.toDateString();
+          const isToday = day.toDateString() === today.toDateString();
           const isPast = day < today && !isToday;
 
           return (
             <div
               key={dayKey}
-              className={`rounded-lg border border-gray-200 bg-white overflow-hidden flex flex-col min-h-96`}
+              className="rounded-lg border border-gray-200 bg-white overflow-hidden flex flex-col min-h-96"
             >
               {/* Day header */}
               <div
                 className={`px-4 py-3 ${
-                  isToday
-                    ? 'bg-blue-500'
-                    : 'bg-gray-50'
+                  isToday ? 'bg-blue-500' : 'bg-gray-50'
                 } border-b border-gray-200`}
               >
-                <p
-                  className={`text-sm font-semibold ${
-                    isToday ? 'text-white' : 'text-gray-900'
-                  }`}
-                >
+                <p className={`text-sm font-semibold ${isToday ? 'text-white' : 'text-gray-900'}`}>
                   {getDayName(day)}
                 </p>
-                <p
-                  className={`text-xs ${
-                    isToday ? 'text-blue-100' : 'text-gray-600'
-                  }`}
-                >
+                <p className={`text-xs ${isToday ? 'text-blue-100' : 'text-gray-600'}`}>
                   {getDateLabel(day)}
                 </p>
               </div>
@@ -259,142 +234,63 @@ export default function WeeklyPlanner({ initialTasks, goals }: WeeklyPlannerProp
               {/* Tasks */}
               <div className="flex-1 p-3 space-y-2 overflow-y-auto">
                 {tasksForDay.length === 0 ? (
-                  <p className="text-xs text-gray-400 text-center py-4">
-                    No tasks
-                  </p>
+                  <p className="text-xs text-gray-400 text-center py-4">No tasks</p>
                 ) : (
                   tasksForDay.map(task => {
                     const taskStatus = ensureAnyTaskStatus(task.status);
                     const isDone = taskStatus === 'done';
                     const goalData = goalMap[task.goal_id];
-                    const goalColor = getGoalColor(
-                      goalData?.goal_number || null
-                    );
-                    const showNotePrompt =
-                      notePrompt?.taskId === task.id &&
-                      notePrompt?.show &&
-                      isDone;
+                    const goalColor = getGoalColor(goalData?.goal_number || null);
+                    const checkboxDisabled = isPast && !isDone;
 
                     return (
-                      <div key={task.id} className="space-y-1">
-                        {/* Task chip */}
-                        <div
-                          className={`rounded-lg border border-l-4 p-2 transition-colors ${
-                            isDone
-                              ? 'bg-gray-50'
-                              : goalColor.bg
-                          } ${goalColor.border} ${
-                            isPast && !isDone
-                              ? 'opacity-60'
-                              : ''
-                          }`}
+                      <div
+                        key={task.id}
+                        className={`flex gap-2 rounded-lg border border-l-4 p-2 transition-colors ${
+                          isDone ? 'bg-gray-50' : goalColor.bg
+                        } ${goalColor.border} ${isPast && !isDone ? 'opacity-60' : ''}`}
+                      >
+                        {/* Checkbox */}
+                        <button
+                          type="button"
+                          onClick={e => {
+                            e.stopPropagation();
+                            if (!checkboxDisabled) toggleTask(task.id, task.status);
+                          }}
+                          className="flex-shrink-0 -m-1 p-1 hover:opacity-70 disabled:cursor-not-allowed"
+                          disabled={checkboxDisabled}
+                          aria-label={isDone ? 'Mark incomplete' : 'Mark complete'}
                         >
-                          <div
-                            className="flex gap-2 cursor-pointer"
-                            onClick={e => {
-                              e.preventDefault();
-                            }}
+                          {isDone ? (
+                            <CheckCircle2 size={16} className="text-green-600" />
+                          ) : (
+                            <Circle size={16} className="text-gray-300" />
+                          )}
+                        </button>
+
+                        {/* Card body — clickable area opens modal */}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedTaskId(task.id)}
+                          className="flex-1 min-w-0 text-left -m-1 p-1 rounded hover:bg-white/40 transition-colors cursor-pointer"
+                        >
+                          <p
+                            className={`text-xs font-medium ${
+                              isDone ? 'line-through text-gray-500' : goalColor.text
+                            }`}
                           >
-                            {/* Checkbox */}
-                            <button
-                              onClick={() =>
-                                !isPast &&
-                                toggleTask(
-                                  task.id,
-                                  task.status
-                                )
-                              }
-                              className="flex-shrink-0 pt-0.5 hover:opacity-70"
-                              disabled={isPast && !isDone}
-                              aria-label={
-                                isDone
-                                  ? 'Mark incomplete'
-                                  : 'Mark complete'
-                              }
+                            {task.title}
+                          </p>
+                          {task.description && (
+                            <p
+                              className={`mt-0.5 text-xs line-clamp-2 ${
+                                isDone ? 'text-gray-400' : 'text-gray-600'
+                              }`}
                             >
-                              {isDone ? (
-                                <CheckCircle2
-                                  size={16}
-                                  className="text-green-600"
-                                />
-                              ) : (
-                                <Circle
-                                  size={16}
-                                  className="text-gray-300"
-                                />
-                              )}
-                            </button>
-
-                            {/* Task content */}
-                            <div className="flex-1 min-w-0">
-                              <Link
-                                href={`/dashboard/goals/${task.goal_id}`}
-                                className={`text-xs font-medium block hover:underline ${
-                                  isDone
-                                    ? 'line-through text-gray-500'
-                                    : goalColor.text
-                                }`}
-                              >
-                                {task.title}
-                              </Link>
-
-                              {/* Goal name */}
-                              {goalData && (
-                                <Link
-                                  href={`/dashboard/goals/${task.goal_id}`}
-                                  className="text-xs text-gray-500 hover:text-gray-700 truncate block"
-                                  onClick={e =>
-                                    e.stopPropagation()
-                                  }
-                                >
-                                  {goalData.title.length > 20
-                                    ? `${goalData.title.substring(
-                                        0,
-                                        20
-                                      )}...`
-                                    : goalData.title}
-                                </Link>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Completion note prompt */}
-                        {showNotePrompt && (
-                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 space-y-2">
-                            <label className="text-xs font-medium text-gray-700">
-                              Quick note?
-                            </label>
-                            <input
-                              type="text"
-                              value={noteText}
-                              onChange={e =>
-                                setNoteText(e.target.value)
-                              }
-                              placeholder="What did you do..."
-                              className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              autoFocus
-                            />
-                            <div className="flex gap-1">
-                              <button
-                                onClick={() =>
-                                  saveCompletionNote(
-                                    task.id
-                                  )
-                                }
-                                className="flex-1 px-2 py-1 text-xs font-medium bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                              >
-                                Save
-                              </button>
-                              <button
-                                onClick={skipNote}
-                                className="flex-1 px-2 py-1 text-xs font-medium bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
-                              >
-                                Skip
-                              </button>
-                            </div>
-                          </div>
-                        )}
+                              {task.description}
+                            </p>
+                          )}
+                        </button>
                       </div>
                     );
                   })
@@ -419,6 +315,14 @@ export default function WeeklyPlanner({ initialTasks, goals }: WeeklyPlannerProp
           </Link>
         </div>
       )}
+
+      {/* Task detail modal */}
+      <TaskDetailModal
+        taskId={selectedTaskId}
+        isOpen={!!selectedTaskId}
+        onClose={() => setSelectedTaskId(null)}
+        onTaskUpdated={handleTaskUpdated}
+      />
     </div>
   );
 }

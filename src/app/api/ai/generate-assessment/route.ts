@@ -72,77 +72,54 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch action logs for each goal
+    // Fetch completed tasks for each goal (PC-8: progress logging is now optional;
+    // we treat each completed task as evidence and use its completion_note when present)
     const goalIds_fromDb = goals.map(g => g.id);
 
-    // Get tasks for these goals
-    const { data: tasks } = await supabase
+    let tasksQuery = supabase
       .from('tasks')
-      .select('id, goal_id')
-      .in('goal_id', goalIds_fromDb);
+      .select('goal_id, title, completed_at, completion_note')
+      .in('goal_id', goalIds_fromDb)
+      .eq('status', 'done')
+      .not('completed_at', 'is', null)
+      .order('completed_at', { ascending: false });
 
-    const taskIds = tasks?.map(t => t.id) || [];
-
-    if (taskIds.length === 0) {
-      return NextResponse.json(
-        { error: 'No tasks found for the selected goals' },
-        { status: 404 }
-      );
-    }
-
-    // Fetch action logs (using correct column names: title, description, created_at)
-    let logsQuery = supabase
-      .from('action_logs')
-      .select('task_id, title, description, created_at')
-      .in('task_id', taskIds)
-      .order('created_at', { ascending: false });
-
-    // Apply date range filter if provided
     if (dateRange?.start) {
-      logsQuery = logsQuery.gte('created_at', dateRange.start);
+      tasksQuery = tasksQuery.gte('completed_at', dateRange.start);
     }
     if (dateRange?.end) {
-      logsQuery = logsQuery.lte('created_at', dateRange.end);
+      tasksQuery = tasksQuery.lte('completed_at', dateRange.end);
     }
 
-    const { data: actionLogs } = await logsQuery;
+    const { data: completedTasks } = await tasksQuery;
 
-    // Map action logs to goals
-    const taskToGoalMap = new Map();
-    tasks?.forEach(task => {
-      taskToGoalMap.set(task.id, task.goal_id);
+    // Map completed tasks to their goals
+    const tasksByGoal = new Map<string, NonNullable<typeof completedTasks>>();
+    completedTasks?.forEach(task => {
+      const list = tasksByGoal.get(task.goal_id) || [];
+      list.push(task);
+      tasksByGoal.set(task.goal_id, list);
     });
 
-    const goalLogsMap = new Map<string, typeof actionLogs>();
-    actionLogs?.forEach(log => {
-      const goalId = taskToGoalMap.get(log.task_id);
-      if (goalId) {
-        if (!goalLogsMap.has(goalId)) {
-          goalLogsMap.set(goalId, []);
-        }
-        goalLogsMap.get(goalId)!.push(log);
-      }
-    });
-
-    // Build goals with logs for prompt
-    const goalsWithLogs = goals.map(goal => ({
+    // Build goals with their completed tasks for the prompt
+    const goalsWithTasks = goals.map(goal => ({
       title: goal.title,
       description: goal.description,
       specific: goal.specific,
       measurable: goal.measurable,
-      logs: (goalLogsMap.get(goal.id) || []).map(log => ({
-        action_description: log.title,
-        impact_notes: log.description || undefined,
-        logged_at: log.created_at,
+      completedTasks: (tasksByGoal.get(goal.id) || []).map(task => ({
+        title: task.title,
+        completion_note: task.completion_note || undefined,
+        completed_at: task.completed_at!,
       })),
     }));
 
-    // Filter out goals with no logs
-    const goalsWithActivity = goalsWithLogs.filter(g => g.logs.length > 0);
+    // Filter out goals with no completed tasks in the period
+    const goalsWithActivity = goalsWithTasks.filter(g => g.completedTasks.length > 0);
 
     if (goalsWithActivity.length === 0) {
       return NextResponse.json(
-        { error: 'No action logs found for the selected goals and date range' },
+        { error: 'No completed tasks found for the selected goals and date range' },
         { status: 404 }
       );
     }
@@ -167,7 +144,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       assessment: assessment.trim(),
       goalCount: goalsWithActivity.length,
-      actionCount: actionLogs?.length || 0,
+      taskCount: completedTasks?.length || 0,
     });
 
   } catch (error) {
