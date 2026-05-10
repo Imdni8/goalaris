@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { ensureAnyTaskStatus } from '@/lib/utils/null-safe';
-import { CheckCircle2, Circle } from 'lucide-react';
+import { CheckCircle2, Circle, Sparkles } from 'lucide-react';
 import GenerateTasksButtonModal from './generate-tasks-button-modal';
 import TaskDetailModal, { TaskUpdate } from './task-detail-modal';
 
@@ -32,6 +32,8 @@ interface MonthlyTaskBoardProps {
   monthsGenerated: string[];
   tasks: TaskRow[];
   onGenerateNewMonth?: (newMonth: string) => void;
+  onAskCoachAboutTask?: (task: { id: string; title: string }) => void;
+  taggedTaskIds?: Set<string>;
 }
 
 function getWeekNumber(dateStr: string | null): 1 | 2 | 3 | 4 | null {
@@ -53,6 +55,8 @@ export default function MonthlyTaskBoard({
   monthsGenerated,
   tasks,
   onGenerateNewMonth,
+  onAskCoachAboutTask,
+  taggedTaskIds,
 }: MonthlyTaskBoardProps) {
   const supabase = createClient();
   const [localTasks, setLocalTasks] = useState<TaskRow[]>(tasks);
@@ -314,6 +318,8 @@ export default function MonthlyTaskBoard({
                         toggleDisabled={isPastMonth}
                         onToggle={() => toggleTask(task.id, task.status)}
                         onOpen={() => setSelectedTaskId(task.id)}
+                        onAskCoach={onAskCoachAboutTask}
+                        isTagged={taggedTaskIds?.has(task.id) || false}
                       />
                     ))}
                   </div>
@@ -333,6 +339,8 @@ export default function MonthlyTaskBoard({
                       toggleDisabled={isPastMonth}
                       onToggle={() => toggleTask(task.id, task.status)}
                       onOpen={() => setSelectedTaskId(task.id)}
+                      onAskCoach={onAskCoachAboutTask}
+                      isTagged={taggedTaskIds?.has(task.id) || false}
                     />
                   ))}
                 </div>
@@ -353,6 +361,8 @@ export default function MonthlyTaskBoard({
                       task={task}
                       onToggle={() => toggleTask(task.id, task.status)}
                       onOpen={() => setSelectedTaskId(task.id)}
+                      onAskCoach={onAskCoachAboutTask}
+                      isTagged={taggedTaskIds?.has(task.id) || false}
                     />
                   ))}
                 </div>
@@ -387,14 +397,16 @@ interface TaskCardProps {
   toggleDisabled?: boolean;
   onToggle: () => void;
   onOpen: () => void;
+  onAskCoach?: (task: { id: string; title: string }) => void;
+  isTagged?: boolean;
 }
 
-function TaskCard({ task, showDueDate, toggleDisabled, onToggle, onOpen }: TaskCardProps) {
+function TaskCard({ task, showDueDate, toggleDisabled, onToggle, onOpen, onAskCoach, isTagged }: TaskCardProps) {
   const isDone = ensureAnyTaskStatus(task.status) === 'done';
 
   return (
     <div
-      className={`flex gap-3 rounded-lg border border-gray-200 p-3 ${
+      className={`group relative flex gap-3 rounded-lg border border-gray-200 p-3 ${
         isDone ? 'bg-gray-50' : 'bg-white'
       } transition-colors`}
     >
@@ -444,6 +456,26 @@ function TaskCard({ task, showDueDate, toggleDisabled, onToggle, onOpen }: TaskC
           </p>
         )}
       </button>
+
+      {/* "Ask coach about this" sparkle — hover-revealed; pinned filled when tagged */}
+      {onAskCoach && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAskCoach({ id: task.id, title: task.title });
+          }}
+          className={`absolute right-2 top-2 transition-all rounded-md p-1.5 ${
+            isTagged
+              ? 'opacity-100 bg-blue-600 text-white hover:bg-blue-700'
+              : 'opacity-0 group-hover:opacity-100 focus:opacity-100 text-blue-600 hover:bg-blue-50'
+          }`}
+          aria-label={isTagged ? 'Untag from coach' : 'Ask coach about this'}
+          title={isTagged ? 'Tagged in coach — click to remove' : 'Ask coach about this'}
+        >
+          <Sparkles className={`w-4 h-4 ${isTagged ? 'fill-current' : ''}`} />
+        </button>
+      )}
     </div>
   );
 }

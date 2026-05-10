@@ -626,3 +626,271 @@ Followed by a brief summary like: "Great! I have a clear picture of your progres
 
 Remember: The user knows their work better than you do. Listen, guide, and adapt.`;
 };
+
+interface InGoalCoachContext {
+  goal: {
+    title: string;
+    description?: string | null;
+    specific?: string | null;
+    measurable?: string | null;
+    achievable?: string | null;
+    relevant?: string | null;
+    time_bound?: string | null;
+    current_month?: string | null;
+  };
+  currentMonth: string; // YYYY-MM
+  currentMonthTasks: Array<{
+    id: string;
+    title: string;
+    description?: string | null;
+    status: string | null;
+    due_date?: string | null;
+    blocker_description?: string | null;
+    order_index: number;
+  }>;
+  currentMonthLogs: Array<{
+    title: string;
+    description?: string | null;
+    status?: string | null;
+    blocker_description?: string | null;
+    created_at: string;
+  }>;
+  activeBlockers: Array<{
+    task_title: string;
+    blocker_description: string;
+    month?: string | null;
+  }>;
+  priorMonthSummaries: Array<{ month: string; summary: string }>;
+  taggedTasks?: Array<{
+    id: string;
+    title: string;
+    description?: string | null;
+    status: string | null;
+  }>;
+}
+
+export const IN_GOAL_COACH_PROMPT = (ctx: InGoalCoachContext) => {
+  const { goal, currentMonth, currentMonthTasks, currentMonthLogs, activeBlockers, priorMonthSummaries, taggedTasks } = ctx;
+
+  let section = `\n### Goal: ${goal.title}\n`;
+  if (goal.description) section += `- Description: ${goal.description}\n`;
+  if (goal.specific) section += `- Specific: ${goal.specific}\n`;
+  if (goal.measurable) section += `- Measurable: ${goal.measurable}\n`;
+  if (goal.time_bound) section += `- Target: ${goal.time_bound}\n`;
+  section += `- Current month: ${currentMonth}\n`;
+
+  if (priorMonthSummaries.length > 0) {
+    section += '\n### Prior Months (summarized):\n';
+    priorMonthSummaries.forEach((s) => {
+      section += `- **${s.month}**: ${s.summary}\n`;
+    });
+  }
+
+  if (currentMonthTasks.length > 0) {
+    section += `\n### Tasks this month (${currentMonth}):\n`;
+    currentMonthTasks.forEach((t) => {
+      section += `- [${t.status || 'todo'}] ${t.title}`;
+      if (t.due_date) section += ` (due ${t.due_date})`;
+      if (t.blocker_description) section += ` [BLOCKER: ${t.blocker_description}]`;
+      section += '\n';
+      if (t.description) section += `    ${t.description}\n`;
+    });
+  } else {
+    section += `\n### Tasks this month: none yet\n`;
+  }
+
+  if (activeBlockers.length > 0) {
+    section += '\n### Active Blockers across this goal:\n';
+    activeBlockers.forEach((b) => {
+      section += `- ${b.task_title}: ${b.blocker_description}${b.month ? ` (since ${b.month})` : ''}\n`;
+    });
+  }
+
+  if (currentMonthLogs.length > 0) {
+    section += `\n### Recent progress logs:\n`;
+    currentMonthLogs.slice(0, 15).forEach((log) => {
+      section += `- ${log.title}`;
+      if (log.description) section += `: ${log.description}`;
+      if (log.blocker_description) section += ` [BLOCKER: ${log.blocker_description}]`;
+      section += ` (${new Date(log.created_at).toLocaleDateString()})\n`;
+    });
+  }
+
+  if (taggedTasks && taggedTasks.length > 0) {
+    section += `\n### Tasks the user is asking about:\n`;
+    taggedTasks.forEach((t) => {
+      section += `- ${t.title} [${t.status || 'todo'}]`;
+      if (t.description) section += `: ${t.description}`;
+      section += '\n';
+    });
+  }
+
+  return `You are a focused career coach embedded inside a single goal page. The user is actively working on this goal and needs concise, specific guidance grounded in the data below.
+
+${section}
+
+**How to coach:**
+- Ground every suggestion in the data above. Reference actual task titles, due dates, and blockers — never give generic advice.
+- Be brief. The chat panel is small; aim for 2-4 short paragraphs or a tight bullet list.
+- If the user asks a vague question, answer it for the most relevant task in this goal — don't ask "which task?" unless it's truly ambiguous.
+- If you see a blocker that's been there a while or a task that looks stuck, surface it proactively when relevant to the question.
+- Use light markdown (bold, bullets) but no big headers — the panel is narrow.
+- If the user mentions a task by name, treat that as the focus. If tagged tasks are listed above, focus there first.
+
+**Modifying tasks for ${currentMonth}:**
+You can collaborate with the user to change this month's tasks. The available actions are:
+- **Add** a new task when the user describes work that isn't captured yet.
+- **Edit** a task's title, description, or due_date when scope or timing changes.
+- **Drop** a task that's no longer relevant (it's preserved for audit, not hard-deleted).
+- **Break down** a complex or stuck task into 2-5 smaller subtasks. The original is dropped and the subtasks replace it.
+
+When proposing changes, be specific: name the task, the proposed change, and a one-line reason. Suggest concrete due dates (weekdays within ${currentMonth}) when adding or breaking down.
+
+**Signaling readiness to apply:**
+The literal token \`<READY_TO_APPLY>\` triggers the UI to auto-open a review/approve panel. Treat it as a hard commit signal, not a suggestion.
+
+ONLY emit \`<READY_TO_APPLY>\` when ALL of these are true:
+1. You have already proposed specific concrete changes (named tasks, named subtasks, exact actions) in a PRIOR assistant turn.
+2. The user's MOST RECENT message is an explicit affirmative confirmation of those proposed changes (e.g., "yes", "yes do that", "go ahead", "sounds good", "proceed", "approved", "ship it").
+3. You are not asking any follow-up question in this same reply.
+
+DO NOT emit \`<READY_TO_APPLY>\` when:
+- You are proposing changes for the first time in this turn — the user hasn't agreed yet.
+- You are asking "Would you like to proceed?" or any other clarifying question.
+- The user said "tell me more", "what about X?", "I'm not sure", or anything other than a clear yes.
+- You are giving general advice or analysis.
+
+When you DO emit it, your reply should be ONE short sentence acknowledging the confirmation, followed by \`<READY_TO_APPLY>\` on its own line. Example:
+"Got it — applying those changes now.
+<READY_TO_APPLY>"
+
+Do not include the token mid-sentence. Do not emit it more than once.
+
+**Inline answer chips:**
+When your message ends in a question with a small fixed set of obvious answers (yes/no, or a 2-4 item enumeration), append a chip-options token on its own line as the very last line of your message:
+
+\`<OPTIONS: Yes | No>\`
+
+or, e.g.:
+
+\`<OPTIONS: Carry forward | Drop | Break it down>\`
+
+Rules:
+- Maximum 4 options. Each option short — under ~20 characters.
+- Pipe-separated. No quotes around options. No trailing punctuation inside options.
+- Use ONLY when the answers are mutually exclusive AND the user shouldn't need to type freely.
+- Do NOT use for open-ended questions like "what changed last week?", "tell me more", "describe the blocker".
+- Do NOT use when you have multiple questions in one message — only when the closing question has a clear fixed set of answers.
+- The token MUST be on its own line, the very last line of your message.
+- Do not invent answers the user wouldn't naturally pick — keep options realistic and exhaustive enough to cover the obvious responses.
+
+If both \`<READY_TO_APPLY>\` and \`<OPTIONS: ...>\` would apply, prefer \`<READY_TO_APPLY>\` and skip the options — the apply signal already drives the UI to the next step.`;
+};
+
+export const MONTH_SUMMARY_PROMPT = (params: {
+  goalTitle: string;
+  month: string;
+  tasks: Array<{ title: string; status: string | null; blocker_description?: string | null; completion_note?: string | null }>;
+  logs: Array<{ title: string; description?: string | null; blocker_description?: string | null }>;
+  assistantMessages: string[];
+}) => {
+  const { goalTitle, month, tasks, logs, assistantMessages } = params;
+
+  let body = `Summarize what happened on the goal "${goalTitle}" during ${month}. Output 2-3 plain sentences (no bullets, no markdown). Cover: what was completed, what got blocked, and any key advice the coach gave.\n\n`;
+
+  if (tasks.length > 0) {
+    body += `Tasks:\n`;
+    tasks.forEach((t) => {
+      body += `- [${t.status || 'todo'}] ${t.title}`;
+      if (t.blocker_description) body += ` [blocker: ${t.blocker_description}]`;
+      if (t.completion_note) body += ` (note: ${t.completion_note})`;
+      body += '\n';
+    });
+  } else {
+    body += `Tasks: none\n`;
+  }
+
+  if (logs.length > 0) {
+    body += `\nLogs:\n`;
+    logs.slice(0, 20).forEach((l) => {
+      body += `- ${l.title}`;
+      if (l.description) body += `: ${l.description}`;
+      if (l.blocker_description) body += ` [blocker: ${l.blocker_description}]`;
+      body += '\n';
+    });
+  }
+
+  if (assistantMessages.length > 0) {
+    body += `\nCoach advice given that month (excerpts):\n`;
+    assistantMessages.slice(0, 5).forEach((m) => {
+      const trimmed = m.replace(/\s+/g, ' ').trim();
+      body += `- ${trimmed.slice(0, 220)}${trimmed.length > 220 ? '...' : ''}\n`;
+    });
+  }
+
+  body += `\nReturn ONLY the summary — no preamble, no quotes, no headers.`;
+  return body;
+};
+
+export const THREAD_TITLE_PROMPT = (firstUserMessage: string) =>
+  `Generate a 3-6 word title for a coaching thread that starts with this user message. No quotes, no period, just the title.\n\nMessage: ${firstUserMessage}`;
+
+export const EXTRACT_COACH_TASK_CHANGES_PROMPT = (params: {
+  monthLabel: string;
+  monthStart: string; // YYYY-MM-DD
+  monthEnd: string; // YYYY-MM-DD
+  currentMonthTasks: Array<{
+    id: string;
+    title: string;
+    description?: string | null;
+    due_date?: string | null;
+    status?: string | null;
+  }>;
+  conversationHistory: Array<{ role: string; content: string }>;
+}) => {
+  const tasksList =
+    params.currentMonthTasks.length > 0
+      ? params.currentMonthTasks
+          .map(
+            (t) =>
+              `- [${t.id}] [${t.status || 'todo'}] ${t.title}${
+                t.description ? ` — ${t.description}` : ''
+              }${t.due_date ? ` (due ${t.due_date})` : ''}`
+          )
+          .join('\n')
+      : '(none)';
+
+  const convo = params.conversationHistory
+    .map((m) => `${m.role === 'user' ? 'User' : 'Coach'}: ${m.content}`)
+    .join('\n\n');
+
+  return `Extract the concrete task changes the user explicitly agreed to apply for ${params.monthLabel}, based on this coach conversation.
+
+Current Tasks for ${params.monthLabel}:
+${tasksList}
+
+Conversation:
+${convo}
+
+Return a JSON object in EXACTLY this shape:
+{
+  "changes": [
+    { "type": "add", "title": "...", "description": "...", "due_date": "YYYY-MM-DD" },
+    { "type": "edit", "taskId": "<existing-task-uuid>", "title": "...", "description": "...", "due_date": "YYYY-MM-DD" },
+    { "type": "delete", "taskId": "<existing-task-uuid>" },
+    { "type": "break_down", "taskId": "<existing-task-uuid>", "subtasks": [{ "title": "...", "description": "...", "due_date": "YYYY-MM-DD" }] }
+  ]
+}
+
+Rules:
+- Only include changes the user EXPLICITLY agreed to. Skip vague suggestions, ideas the user pushed back on, brainstorming, or tentative options.
+- For "edit": only include the fields that actually changed (any of title, description, due_date). Always include taskId.
+- For "delete": just include taskId. The task will be marked as dropped (audit-preserving).
+- For "break_down": generate 2-5 concrete subtasks. The original task will be dropped; subtasks replace it.
+- For "add" and break_down "subtasks": description and due_date are optional but recommended.
+- All due_date values MUST be within [${params.monthStart}, ${params.monthEnd}] AND fall on a weekday (Mon-Fri).
+- If unsure about a due_date, pick a reasonable weekday inside that range — do not omit it for break_down subtasks.
+- taskId values for edit/delete/break_down MUST come from the "Current Tasks" list above.
+- If the user did not confirm any concrete changes, return { "changes": [] }.
+- Return ONLY the JSON object — no preamble, no markdown fences, no extra text.`;
+};

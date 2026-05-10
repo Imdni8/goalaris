@@ -6,18 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar } from '@/components/ui/avatar';
-import { Send, Copy, Check, Target, X } from 'lucide-react';
+import { Send, Copy, Check } from 'lucide-react';
 import { Tables } from '@/lib/db/types';
-import { createClient } from '@/lib/supabase/client';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 type Message = Tables<'messages'>;
-
-interface Goal {
-  id: string;
-  title: string;
-}
 
 interface ChatWindowProps {
   conversationId: string;
@@ -30,36 +24,14 @@ export function ChatWindow({ conversationId, initialMessages }: ChatWindowProps)
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [showGoalSelector, setShowGoalSelector] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Sync messages when conversation changes (but not when initialMessages updates)
   useEffect(() => {
     setMessages(initialMessages);
     setInput('');
-    setSelectedGoalId(null);
-    setShowGoalSelector(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]); // Only depend on conversationId, not initialMessages
-
-  // Fetch user's goals
-  useEffect(() => {
-    const fetchGoals = async () => {
-      const supabase = createClient();
-      const { data } = await supabase
-        .from('goals')
-        .select('id, title')
-        .eq('status', 'active')
-        .order('created_at', { ascending: false });
-
-      if (data) {
-        setGoals(data);
-      }
-    };
-    fetchGoals();
-  }, []);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -75,9 +47,6 @@ export function ChatWindow({ conversationId, initialMessages }: ChatWindowProps)
     setInput('');
     setIsLoading(true);
 
-    console.log('[ChatWindow] Sending message:', userMessage);
-    console.log('[ChatWindow] Selected goal ID:', selectedGoalId);
-
     // Optimistically add user message
     const tempUserMsg: Message = {
       id: `temp-${Date.now()}`,
@@ -85,20 +54,20 @@ export function ChatWindow({ conversationId, initialMessages }: ChatWindowProps)
       role: 'user',
       content: userMessage,
       created_at: new Date().toISOString(),
+      metadata: null,
+      status: null,
     };
 
     setMessages((prev) => [...prev, tempUserMsg]);
 
     try {
       // Send message to API with streaming
-      console.log('[ChatWindow] Fetching /api/coach/send-message...');
       const response = await fetch('/api/coach/send-message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           conversationId,
           message: userMessage,
-          goalId: selectedGoalId, // Include selected goal for context
         }),
       });
 
@@ -126,6 +95,8 @@ export function ChatWindow({ conversationId, initialMessages }: ChatWindowProps)
         role: 'assistant',
         content: '',
         created_at: new Date().toISOString(),
+        metadata: null,
+        status: null,
       };
 
       setMessages((prev) => [...prev, tempAiMsg]);
@@ -297,66 +268,13 @@ export function ChatWindow({ conversationId, initialMessages }: ChatWindowProps)
 
       {/* Input Area */}
       <div className="border-t border-gray-200 p-4">
-        <div className="max-w-3xl mx-auto space-y-3">
-          {/* Goal Selector */}
-          {selectedGoalId ? (
-            <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
-              <Target className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-900">
-                Discussing: {goals.find((g) => g.id === selectedGoalId)?.title}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSelectedGoalId(null)}
-                className="ml-auto h-6 w-6 p-0"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowGoalSelector(!showGoalSelector)}
-                className="flex items-center gap-2"
-              >
-                <Target className="w-4 h-4" />
-                Focus on Goal
-              </Button>
-              {showGoalSelector && (
-                <div className="flex-1 flex gap-2 overflow-x-auto">
-                  {goals.map((goal) => (
-                    <Button
-                      key={goal.id}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedGoalId(goal.id);
-                        setShowGoalSelector(false);
-                      }}
-                      className="whitespace-nowrap"
-                    >
-                      {goal.title}
-                    </Button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Input */}
+        <div className="max-w-3xl mx-auto">
           <div className="flex gap-2">
             <Textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={
-                selectedGoalId
-                  ? `Ask about ${goals.find((g) => g.id === selectedGoalId)?.title}...`
-                  : 'Ask for coaching or request a self-assessment...'
-              }
+              placeholder="Ask for coaching or request a self-assessment..."
               className="flex-1 min-h-[60px] max-h-[200px]"
               disabled={isLoading}
             />

@@ -13,11 +13,12 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Fetch all conversations for the user, ordered by most recent
+    // Fetch standalone coach conversations only (in-goal threads have goal_id set)
     const { data: conversations, error } = await supabase
       .from('conversations')
       .select('*')
       .eq('user_id', user.id)
+      .is('goal_id', null)
       .order('updated_at', { ascending: false });
 
     if (error) {

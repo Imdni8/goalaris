@@ -11,6 +11,10 @@ import {
   ASSESSMENT_SUMMARY_PROMPT,
   SMART_REFINEMENT_PROMPT,
   COACH_SYSTEM_PROMPT,
+  IN_GOAL_COACH_PROMPT,
+  MONTH_SUMMARY_PROMPT,
+  THREAD_TITLE_PROMPT,
+  EXTRACT_COACH_TASK_CHANGES_PROMPT,
 } from './prompts';
 
 const MODEL = 'gemini-2.5-flash-lite';
@@ -140,6 +144,149 @@ export async function refineSmartElement(
 
   // Return the refined text, trimming any extra whitespace
   return refinedText.trim();
+}
+
+/**
+ * Parse Gemini SSE stream into a ReadableStream of text chunks.
+ * Shared between standalone coach and in-goal coach.
+ */
+function geminiSSEToTextStream(httpResponse: Response): ReadableStream {
+  const reader = httpResponse.body?.getReader();
+  if (!reader) throw new Error('No response body from Gemini');
+  const decoder = new TextDecoder();
+
+  return new ReadableStream({
+    async start(controller) {
+      let buffer = '';
+      try {
+        const drain = (chunk: string) => {
+          if (chunk.startsWith('data: ')) {
+            const jsonStr = chunk.slice(6);
+            try {
+              const data = JSON.parse(jsonStr);
+              const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (text) controller.enqueue(new TextEncoder().encode(text));
+            } catch {
+              // Incomplete JSON — ignore; will be retried via buffer if needed
+            }
+          }
+        };
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            if (buffer.trim()) {
+              for (const line of buffer.split('\n')) drain(line);
+            }
+            controller.close();
+            break;
+          }
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+          for (const line of lines) drain(line);
+        }
+      } catch (error) {
+        controller.error(error);
+      }
+    },
+  });
+}
+
+/**
+ * Stream a coach response inside a single goal context.
+ * The system prompt embeds goal data (current-month tasks, logs, blockers, prior-month summaries).
+ */
+export async function streamGoalCoachResponse(
+  conversationHistory: Array<{ role: string; content: string }>,
+  context: Parameters<typeof IN_GOAL_COACH_PROMPT>[0]
+): Promise<ReadableStream> {
+  const apiKey = process.env.GOOGLE_AI_API_KEY;
+  if (!apiKey) throw new Error('GOOGLE_AI_API_KEY environment variable is not set');
+
+  const url = `${API_ENDPOINT}/${MODEL}:streamGenerateContent?alt=sse&key=${apiKey}`;
+  const systemPrompt = IN_GOAL_COACH_PROMPT(context);
+
+  const contents = [
+    { role: 'user', parts: [{ text: systemPrompt }] },
+    { role: 'model', parts: [{ text: `Got it. I'm focused on "${context.goal.title}" and have your current-month tasks and history. What's on your mind?` }] },
+    ...conversationHistory.map((msg) => ({
+      role: msg.role === 'user' ? 'user' : 'model',
+      parts: [{ text: msg.content }],
+    })),
+  ];
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents,
+      generationConfig: { temperature: 0.7, maxOutputTokens: 1024 },
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${errorText}`);
+  }
+
+  return geminiSSEToTextStream(response);
+}
+
+/**
+ * Generate a 2-3 sentence summary of activity on a goal during a given month.
+ */
+export async function generateMonthSummary(
+  params: Parameters<typeof MONTH_SUMMARY_PROMPT>[0]
+): Promise<string> {
+  const text = await callGemini(MONTH_SUMMARY_PROMPT(params));
+  return text.trim();
+}
+
+/**
+ * Generate a short title for a coach thread from the first user message.
+ */
+export async function generateThreadTitle(firstUserMessage: string): Promise<string> {
+  const text = await callGemini(THREAD_TITLE_PROMPT(firstUserMessage));
+  // Strip stray quotes/punctuation
+  return text.trim().replace(/^["'`]+|["'`.]+$/g, '').slice(0, 80);
+}
+
+export interface CoachTaskChange {
+  type: 'add' | 'edit' | 'delete' | 'break_down';
+  taskId?: string;
+  title?: string;
+  description?: string | null;
+  due_date?: string | null;
+  subtasks?: Array<{
+    title: string;
+    description?: string | null;
+    due_date?: string | null;
+  }>;
+}
+
+/**
+ * Extract a structured list of task changes the user agreed to during a coach conversation.
+ * Returns [] if no concrete changes were confirmed or extraction failed.
+ */
+export async function extractCoachTaskChanges(
+  params: Parameters<typeof EXTRACT_COACH_TASK_CHANGES_PROMPT>[0]
+): Promise<CoachTaskChange[]> {
+  const text = await callGemini(EXTRACT_COACH_TASK_CHANGES_PROMPT(params));
+  const cleaned = text
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/```\s*$/, '')
+    .trim();
+  try {
+    const parsed = JSON.parse(cleaned);
+    if (Array.isArray(parsed)) return parsed;
+    if (parsed && Array.isArray(parsed.changes)) return parsed.changes;
+    return [];
+  } catch (e) {
+    console.error('[extractCoachTaskChanges] failed to parse:', e, 'raw:', cleaned.slice(0, 500));
+    return [];
+  }
 }
 
 /**

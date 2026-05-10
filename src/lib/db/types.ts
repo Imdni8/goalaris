@@ -217,6 +217,7 @@ export type Database = {
       conversations: {
         Row: {
           created_at: string
+          goal_id: string | null
           id: string
           title: string | null
           updated_at: string
@@ -224,6 +225,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          goal_id?: string | null
           id?: string
           title?: string | null
           updated_at?: string
@@ -231,12 +233,53 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          goal_id?: string | null
           id?: string
           title?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conversations_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goal_month_summaries: {
+        Row: {
+          generated_at: string
+          goal_id: string
+          id: string
+          month: string
+          summary: string
+        }
+        Insert: {
+          generated_at?: string
+          goal_id: string
+          id?: string
+          month: string
+          summary: string
+        }
+        Update: {
+          generated_at?: string
+          goal_id?: string
+          id?: string
+          month?: string
+          summary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goal_month_summaries_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       goals: {
         Row: {
@@ -301,21 +344,27 @@ export type Database = {
           conversation_id: string
           created_at: string
           id: string
+          metadata: Json | null
           role: string
+          status: string | null
         }
         Insert: {
           content: string
           conversation_id: string
           created_at?: string
           id?: string
+          metadata?: Json | null
           role: string
+          status?: string | null
         }
         Update: {
           content?: string
           conversation_id?: string
           created_at?: string
           id?: string
+          metadata?: Json | null
           role?: string
+          status?: string | null
         }
         Relationships: [
           {

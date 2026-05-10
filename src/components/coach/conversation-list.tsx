@@ -6,10 +6,11 @@ import { ConversationListItem } from './conversation-list-item';
 export async function ConversationList({ activeConversationId }: { activeConversationId?: string }) {
   const supabase = await createClient();
 
-  // Fetch all conversations for the user
+  // Standalone coach: only threads without a goal scope
   const { data: conversations } = await supabase
     .from('conversations')
     .select('id, title, created_at, updated_at')
+    .is('goal_id', null)
     .order('updated_at', { ascending: false });
 
   return (
