@@ -40,7 +40,15 @@
       "mcp__figma-remote-mcp__get_screenshot",
       "Bash(pkill -f \"next dev\")",
       "Bash(docker volume ls --filter label=com.supabase.cli.project=goalaris -q)",
-      "Bash(xargs -r docker volume rm)"
+      "Bash(xargs -r docker volume rm)",
+      "Bash(git pull *)",
+      "Bash(xargs ls *)",
+      "Bash(kill %1)",
+      "Bash(wait)",
+      "Bash(xargs -r kill -9)",
+      "Bash(wait %1)",
+      "Bash(tee /tmp/buildout.txt)",
+      "Bash(npx next *)"
     ],
     "deny": [],
     "ask": []

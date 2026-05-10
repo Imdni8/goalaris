@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 import GoalPageClient from '@/components/goals/goal-page-client';
 
 export default async function GoalDetailPage({ params }: { params: { id: string } }) {
@@ -29,10 +30,11 @@ export default async function GoalDetailPage({ params }: { params: { id: string 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="border-b border-gray-200 bg-white px-6 py-4">
-        <div className="mx-auto max-w-7xl flex items-center justify-between">
-          <Link href="/dashboard/goals" className="text-sm text-gray-600 hover:text-gray-900">
-            &lt; Back
+      <div className="px-6 pt-6">
+        <div className="mx-auto max-w-7xl">
+          <Link href="/dashboard/goals" className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900">
+            <ArrowLeft className="w-4 h-4" />
+            Back
           </Link>
         </div>
       </div>

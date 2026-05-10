@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
       newMonth,
       conversationHistory,
       userMessage,
+      conversationId,
     } = await request.json();
 
     if (!goalId || typeof goalId !== 'string') {
@@ -173,6 +174,31 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // If a conversationId is supplied, verify ownership/scope and persist
+    // the user message immediately so that history view stays in sync even
+    // if streaming dies mid-response.
+    let persistConversationId: string | null = null;
+    if (conversationId && typeof conversationId === 'string') {
+      const { data: conv } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('id', conversationId)
+        .eq('user_id', user.id)
+        .eq('goal_id', goalId)
+        .maybeSingle();
+
+      if (conv) {
+        persistConversationId = conv.id;
+        if (userMessage && typeof userMessage === 'string') {
+          await supabase.from('messages').insert({
+            conversation_id: persistConversationId,
+            role: 'user',
+            content: userMessage,
+          });
+        }
+      }
+    }
+
     const url = `${API_ENDPOINT}/${MODEL}:streamGenerateContent?alt=sse&key=${process.env.GOOGLE_AI_API_KEY}`;
 
     console.log('[monthly-checkin] Calling Gemini API for monthly check-in');
@@ -211,6 +237,7 @@ export async function POST(request: NextRequest) {
 
     const decoder = new TextDecoder();
     let buffer = '';
+    let aiResponse = '';
 
     const readableStream = new ReadableStream({
       async start(controller) {
@@ -228,6 +255,7 @@ export async function POST(request: NextRequest) {
                       const data = JSON.parse(jsonStr);
                       const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
                       if (text) {
+                        aiResponse += text;
                         controller.enqueue(new TextEncoder().encode(text));
                       }
                     } catch (e) {
@@ -237,6 +265,25 @@ export async function POST(request: NextRequest) {
                 }
               }
               controller.close();
+
+              if (persistConversationId && aiResponse.trim()) {
+                const cleaned = aiResponse.replace('<READY_TO_GENERATE>', '').trim();
+                supabase
+                  .from('messages')
+                  .insert({
+                    conversation_id: persistConversationId,
+                    role: 'assistant',
+                    content: cleaned,
+                  })
+                  .then(({ error }) => {
+                    if (error) {
+                      console.error(
+                        '[monthly-checkin] failed to persist assistant message:',
+                        error
+                      );
+                    }
+                  });
+              }
               break;
             }
 
@@ -253,6 +300,7 @@ export async function POST(request: NextRequest) {
                   const data = JSON.parse(jsonStr);
                   const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
                   if (text) {
+                    aiResponse += text;
                     controller.enqueue(new TextEncoder().encode(text));
                   }
                 } catch (e) {

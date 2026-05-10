@@ -60,11 +60,12 @@ export default async function CoachPage({
     );
   }
 
-  // Fetch conversation details and messages
+  // Fetch conversation details and messages (reject in-goal threads here)
   const { data: conversation, error: convError } = await supabase
     .from('conversations')
     .select('*')
     .eq('id', conversationId)
+    .is('goal_id', null)
     .single();
 
   if (convError || !conversation) {

@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse request body
-    const { conversationId, message, goalId } = await request.json();
+    const { conversationId, message } = await request.json();
 
     if (!conversationId || !message) {
       return NextResponse.json(
@@ -43,11 +43,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify conversation belongs to user
+    // Verify conversation belongs to user and is a standalone (non-goal) thread
     const { data: conversation, error: convError } = await supabase
       .from('conversations')
       .select('*')
       .eq('id', conversationId)
+      .is('goal_id', null)
       .single();
 
     if (convError || !conversation) {
@@ -106,11 +107,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch user context: goals with tasks and action logs
-    // If goalId provided, fetch ALL data for that goal; otherwise last 30 days across all goals
-    const isGoalFocused = !!goalId;
-
-    let goalsQuery = supabase
+    // Standalone coach is cross-goal: fetch all goals + last 30 days of logs
+    const { data: goals } = await supabase
       .from('goals')
       .select(`
         id,
@@ -128,18 +126,13 @@ export async function POST(request: NextRequest) {
           goal_id
         )
       `)
-      .eq('user_id', user.id);
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
 
-    if (goalId) {
-      goalsQuery = goalsQuery.eq('id', goalId);
-    } else {
-      goalsQuery = goalsQuery.order('created_at', { ascending: false });
-    }
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const { data: goals } = await goalsQuery;
-
-    // Action logs query - conditional based on goal focus
-    let logsQuery = supabase
+    const { data: actionLogs } = await supabase
       .from('action_logs')
       .select(`
         id,
@@ -156,22 +149,9 @@ export async function POST(request: NextRequest) {
           goal_id
         )
       `)
-      .eq('user_id', user.id);
-
-    if (goalId && goals && goals.length > 0 && goals[0].tasks) {
-      // Goal-focused: fetch ALL logs for this goal's tasks
-      const goalTasks = goals[0].tasks.map((t: any) => t.id);
-      if (goalTasks.length > 0) {
-        logsQuery = logsQuery.in('task_id', goalTasks);
-      }
-    } else {
-      // General: fetch last 30 days
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      logsQuery = logsQuery.gte('created_at', thirtyDaysAgo.toISOString());
-    }
-
-    const { data: actionLogs } = await logsQuery.order('created_at', { ascending: false });
+      .eq('user_id', user.id)
+      .gte('created_at', thirtyDaysAgo.toISOString())
+      .order('created_at', { ascending: false });
 
     // Fetch user profile for context
     const { data: userProfile } = await supabase

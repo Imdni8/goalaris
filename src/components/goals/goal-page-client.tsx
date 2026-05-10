@@ -1,10 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import GoalSmartCard from './goal-smart-card';
 import MonthlyTaskBoard from '@/components/tasks/monthly-task-board';
-import { GoalCoachPanel } from './goal-coach-panel';
+import {
+  InGoalCoachWidget,
+  type InGoalCoachWidgetHandle,
+  type TaggedTask,
+  type CheckInMode,
+} from './in-goal-coach-widget';
 
 interface TaskRow {
   id: string;
@@ -32,18 +37,29 @@ interface GoalPageClientProps {
 
 export default function GoalPageClient({ goal: initialGoal, tasks: initialTasks }: GoalPageClientProps) {
   const supabase = createClient();
-  const [coachPanelOpen, setCoachPanelOpen] = useState(false);
-  const [checkInMode, setCheckInMode] = useState<{
-    newMonth: string;
-    previousMonth: string;
-  } | null>(null);
+  const [checkInMode, setCheckInMode] = useState<CheckInMode | null>(null);
   const [tasks, setTasks] = useState<TaskRow[]>(initialTasks);
   const [goal, setGoal] = useState<any>(initialGoal);
+  const [taggedTasks, setTaggedTasks] = useState<TaggedTask[]>([]);
+  const coachRef = useRef<InGoalCoachWidgetHandle>(null);
+
+  const taggedTaskIds = useMemo(
+    () => new Set(taggedTasks.map((t) => t.id)),
+    [taggedTasks]
+  );
+
+  const handleAskCoachAboutTask = (task: { id: string; title: string }) => {
+    setTaggedTasks((prev) =>
+      prev.find((t) => t.id === task.id)
+        ? prev.filter((t) => t.id !== task.id) // toggle off if already tagged
+        : [...prev, { id: task.id, title: task.title }]
+    );
+    coachRef.current?.open('task_sparkle');
+  };
 
   const handleGenerateNewMonth = (newMonth: string) => {
     const previousMonth = goal.current_month;
     setCheckInMode({ newMonth, previousMonth });
-    setCoachPanelOpen(true);
   };
 
   const handleTasksGenerated = async () => {
@@ -61,7 +77,6 @@ export default function GoalPageClient({ goal: initialGoal, tasks: initialTasks 
     if (goalRes.data) setGoal(goalRes.data);
 
     setCheckInMode(null);
-    setCoachPanelOpen(false);
   };
 
   return (
@@ -82,19 +97,20 @@ export default function GoalPageClient({ goal: initialGoal, tasks: initialTasks 
           monthsGenerated={goal.months_generated || []}
           tasks={tasks}
           onGenerateNewMonth={handleGenerateNewMonth}
+          onAskCoachAboutTask={handleAskCoachAboutTask}
+          taggedTaskIds={taggedTaskIds}
         />
       </main>
 
-      {/* Coach panel */}
-      <GoalCoachPanel
-        open={coachPanelOpen}
-        onClose={() => {
-          setCoachPanelOpen(false);
-          setCheckInMode(null);
-        }}
+      {/* Floating coach widget — also hosts the monthly check-in flow */}
+      <InGoalCoachWidget
+        ref={coachRef}
         goalId={goal.id}
         goalTitle={goal.title}
+        taggedTasks={taggedTasks}
+        onTaggedTasksChange={setTaggedTasks}
         checkInMode={checkInMode}
+        onCheckInClose={() => setCheckInMode(null)}
         onTasksGenerated={handleTasksGenerated}
       />
     </div>
