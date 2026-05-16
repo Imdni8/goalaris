@@ -101,7 +101,9 @@ export default function WeeklyPlanner({ initialTasks, goals }: WeeklyPlannerProp
 
     weekDays.forEach(day => {
       const dayKey = formatDate(day);
-      grouped[dayKey] = localTasks.filter(t => t.due_date === dayKey);
+      grouped[dayKey] = localTasks.filter(
+        t => t.due_date === dayKey && t.status !== 'dropped'
+      );
     });
 
     return grouped;

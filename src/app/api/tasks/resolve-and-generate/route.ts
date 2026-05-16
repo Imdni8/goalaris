@@ -183,6 +183,17 @@ export async function POST(request: NextRequest) {
       (t) => t.status === 'pending' || t.status === 'todo'
     );
 
+    // Compute the [startDate, endDate] window for newMonth.
+    // For the current month we clamp the start to today so we never schedule
+    // tasks in the past. For future months, use the first of the month.
+    const [yearStr, monthStr] = newMonth.split('-');
+    const year = parseInt(yearStr, 10);
+    const monthIdx = parseInt(monthStr, 10);
+    const monthStart = `${newMonth}-01`;
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const startDate = todayStr > monthStart ? todayStr : monthStart;
+    const endDate = new Date(Date.UTC(year, monthIdx, 0)).toISOString().slice(0, 10);
+
     // Extract decisions from conversation
     console.log('[resolve-and-generate] Extracting task decisions from conversation...');
     const taskDecisions = await extractTaskDecisions(
@@ -197,11 +208,17 @@ export async function POST(request: NextRequest) {
       if (!task) continue;
 
       if (decision.action === 'carry_forward') {
-        // Move task to new month and increment reschedule_count
+        // Move task to new month, re-snap its due_date into the new window
+        // (otherwise the task displays in the new month tab with a stale
+        // due_date from an earlier month), and increment reschedule_count.
+        const carriedDueDate = task.due_date
+          ? snapToWeekdayInRange(task.due_date, startDate, endDate)
+          : null;
         await supabase
           .from('tasks')
           .update({
             month: newMonth,
+            due_date: carriedDueDate,
             reschedule_count: (task.reschedule_count || 0) + 1,
           })
           .eq('id', decision.taskId);
@@ -232,16 +249,10 @@ export async function POST(request: NextRequest) {
       .map((msg) => msg.content)
       .join('\n\n');
 
-    // Generate new month's tasks
-    // Range = full newMonth (start of newMonth → end of newMonth). The check-in
-    // flow can target a future month, so we don't clamp to "today" here.
+    // Generate new month's tasks within the [startDate, endDate] window
+    // computed above (today → end-of-month for current month, otherwise
+    // first → last day of the new month).
     console.log('[resolve-and-generate] Generating tasks for new month...');
-    const [yearStr, monthStr] = newMonth.split('-');
-    const year = parseInt(yearStr, 10);
-    const monthIdx = parseInt(monthStr, 10);
-    const startDate = `${newMonth}-01`;
-    const endDate = new Date(Date.UTC(year, monthIdx, 0)).toISOString().slice(0, 10);
-
     const newTasks = await generateTaskBreakdown(
       {
         title: goal.title,
