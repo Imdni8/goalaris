@@ -1,11 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const GOOGLE_AI_API_KEY = process.env.GOOGLE_AI_API_KEY;
-
-if (!GOOGLE_AI_API_KEY) {
-  throw new Error('GOOGLE_AI_API_KEY is not set');
-}
-
 interface RefinementRequest {
   goalDraft: {
     title: string;
@@ -20,6 +14,11 @@ interface RefinementRequest {
 }
 
 async function refineGoal(data: RefinementRequest) {
+  const apiKey = process.env.GOOGLE_AI_API_KEY;
+  if (!apiKey) {
+    throw new Error('GOOGLE_AI_API_KEY is not set');
+  }
+
   const { goalDraft, refinementFeedback } = data;
 
   const prompt = `You are an AI career coach refining a goal based on user feedback.

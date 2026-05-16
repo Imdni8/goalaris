@@ -144,6 +144,22 @@ npx tsx scripts/seed-test-data.ts  # Seed test data
 - All AI operations server-side (keeps API key secret)
 - Log interactions to `ai_interactions` table
 - Validate responses with Zod schemas
+- **Read `process.env.GOOGLE_AI_API_KEY` inside the handler, not at module top-level.** Next.js's build-time "collect page data" step imports every `route.ts`. A top-level `throw new Error('GOOGLE_AI_API_KEY is not set')` will fail `next build` on any environment that doesn't expose the key at build time (we hit this on Vercel — `src/app/api/ai/refine-goal/route.ts`). Check the key lazily so the failure surfaces as a clean 500 at request time instead of breaking the build:
+  ```ts
+  // ✅ GOOD — lazy check inside the handler
+  export async function POST(request: NextRequest) {
+    const apiKey = process.env.GOOGLE_AI_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ error: 'GOOGLE_AI_API_KEY is not set' }, { status: 500 });
+    }
+    // ...
+  }
+
+  // ❌ BAD — throws at import time, breaks `next build`
+  const GOOGLE_AI_API_KEY = process.env.GOOGLE_AI_API_KEY;
+  if (!GOOGLE_AI_API_KEY) throw new Error('GOOGLE_AI_API_KEY is not set');
+  ```
+  The same rule applies to any other required env var referenced from a route module.
 
 ### 3. Authentication
 - Supabase auth (email/password)
