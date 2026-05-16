@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { Analytics } from '@vercel/analytics/react';
+import MobileWarning from '@/components/shared/mobile-warning';
 
 export const metadata: Metadata = {
   title: 'Goalaris',
@@ -17,6 +18,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <MobileWarning />
         {children}
         <Toaster />
         <Analytics />
