@@ -108,10 +108,16 @@ export const InGoalCoachWidget = forwardRef<InGoalCoachWidgetHandle, InGoalCoach
   const [proposedChanges, setProposedChanges] = useState<ProposedChange[] | null>(null);
   const [isPreviewingChanges, setIsPreviewingChanges] = useState(false);
   const [isApplyingChanges, setIsApplyingChanges] = useState(false);
+  const [reviewRefineInput, setReviewRefineInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastEntryPointRef = useRef<'pill' | 'task_sparkle'>('pill');
   const checkInStartedRef = useRef<string | null>(null);
+  const messagesRef = useRef<ChatMessage[]>([]);
   const isInCheckIn = !!checkInMode;
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const toggleMsgTags = (msgId: string) => {
     setExpandedTagsByMsg((prev) => {
@@ -308,11 +314,17 @@ export const InGoalCoachWidget = forwardRef<InGoalCoachWidgetHandle, InGoalCoach
           const { done, value } = await reader.read();
           if (done) break;
           acc += decoder.decode(value, { stream: true });
+          // While streaming, hide the bubble text once the readiness marker
+          // appears so the user doesn't read a wrap-up message that we're
+          // about to navigate away from.
+          const display = acc.includes('<READY_TO_GENERATE>')
+            ? ''
+            : acc;
           setMessages((prev) => {
             const next = [...prev];
             const last = next[next.length - 1];
             if (last && last.role === 'assistant') {
-              next[next.length - 1] = { ...last, content: acc };
+              next[next.length - 1] = { ...last, content: display };
             }
             return next;
           });
@@ -320,15 +332,10 @@ export const InGoalCoachWidget = forwardRef<InGoalCoachWidgetHandle, InGoalCoach
 
         if (acc.includes('<READY_TO_GENERATE>')) {
           setIsReadyToGenerate(true);
-          const cleaned = acc.replace('<READY_TO_GENERATE>', '').trim();
-          setMessages((prev) => {
-            const next = [...prev];
-            const last = next[next.length - 1];
-            if (last && last.role === 'assistant') {
-              next[next.length - 1] = { ...last, content: cleaned };
-            }
-            return next;
-          });
+          // Drop the assistant placeholder entirely — the loader bubble
+          // morphs to "Generating tasks..." via the isGeneratingTasks branch
+          // below, then the screen swaps to the review step.
+          setMessages((prev) => prev.filter((m) => m.id !== tempAiId));
         }
       } catch (err) {
         console.error('[InGoalCoachWidget] check-in stream error:', err);
@@ -419,10 +426,11 @@ export const InGoalCoachWidget = forwardRef<InGoalCoachWidgetHandle, InGoalCoach
   };
 
   const handleGenerateTasks = async () => {
-    if (!checkInMode) return;
+    if (!checkInMode || isGeneratingTasks) return;
     setIsGeneratingTasks(true);
+    setIsReadyToGenerate(false);
     try {
-      const history = messages
+      const history = messagesRef.current
         .filter((m) => m.content)
         .map((m) => ({ role: m.role, content: m.content }));
       const res = await fetch('/api/tasks/resolve-and-generate', {
@@ -473,6 +481,39 @@ export const InGoalCoachWidget = forwardRef<InGoalCoachWidgetHandle, InGoalCoach
     }
   };
 
+  const handleSendFromReview = async () => {
+    if (
+      !reviewRefineInput.trim() ||
+      isStreaming ||
+      isGeneratingTasks ||
+      !conversationId ||
+      !checkInMode
+    ) {
+      return;
+    }
+    const text = reviewRefineInput.trim();
+    setReviewRefineInput('');
+    setCheckInStep('conversation');
+    setIsReadyToGenerate(false);
+    setGeneratedTasks([]);
+
+    const history = messagesRef.current
+      .filter((m) => m.content)
+      .map((m) => ({ role: m.role, content: m.content }));
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `tmp-u-${Date.now()}`,
+        role: 'user',
+        content: text,
+        created_at: new Date().toISOString(),
+      },
+    ]);
+
+    await streamCheckInResponse(conversationId, history, text);
+  };
+
   const resetCheckInState = () => {
     setMessages([]);
     setConversationId(null);
@@ -480,6 +521,7 @@ export const InGoalCoachWidget = forwardRef<InGoalCoachWidgetHandle, InGoalCoach
     setIsGeneratingTasks(false);
     setGeneratedTasks([]);
     setCheckInStep('conversation');
+    setReviewRefineInput('');
     checkInStartedRef.current = null;
   };
 
@@ -499,6 +541,19 @@ export const InGoalCoachWidget = forwardRef<InGoalCoachWidgetHandle, InGoalCoach
     onCheckInClose?.();
     setMode('collapsed');
   };
+
+  useEffect(() => {
+    if (
+      isInCheckIn &&
+      isReadyToGenerate &&
+      checkInStep === 'conversation' &&
+      !isGeneratingTasks &&
+      !isStreaming
+    ) {
+      handleGenerateTasks();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReadyToGenerate, isInCheckIn, checkInStep, isGeneratingTasks, isStreaming]);
 
   // ----- Regular coach send -----
 
@@ -603,9 +658,12 @@ export const InGoalCoachWidget = forwardRef<InGoalCoachWidgetHandle, InGoalCoach
     if (!streamErrored) {
       let cleaned = acc;
 
-      const hasReadyToApply = /<READY_TO_APPLY>/.test(cleaned);
+      // Tolerate minor model variations like `<READY TO APPLY>`,
+      // `<ready_to_apply>`, or stray whitespace.
+      const readyTokenRe = /<\s*READY[\s_-]*TO[\s_-]*APPLY\s*>/gi;
+      const hasReadyToApply = readyTokenRe.test(cleaned);
       if (hasReadyToApply) {
-        cleaned = cleaned.replace(/<READY_TO_APPLY>/g, '');
+        cleaned = cleaned.replace(readyTokenRe, '');
       }
 
       let suggestedOptions: string[] | undefined;
@@ -671,8 +729,44 @@ export const InGoalCoachWidget = forwardRef<InGoalCoachWidgetHandle, InGoalCoach
   };
 
   const handleChipClick = (option: string) => {
-    if (isStreaming) return;
+    if (isStreaming || isPreviewingChanges) return;
+
+    // Fast-path for commit chips ("Apply", "Confirm", etc.): bypass the LLM
+    // round-trip and go straight to the review panel. Gemini 2.5 Flash Lite
+    // is unreliable about emitting `<READY_TO_APPLY>`, so we drive the
+    // transition from the chip click directly — the proposal is already in
+    // conversation history for the preview extractor to read.
+    const isCommitChip = /^(apply|confirm|proceed|go ahead|do it)$/i.test(
+      option.trim()
+    );
+    if (isCommitChip && !isInCheckIn) {
+      void handleCommitChipClick(option);
+      return;
+    }
+
     sendMessage(option);
+  };
+
+  const handleCommitChipClick = async (option: string) => {
+    // Render the user's chip click locally so the transcript shows it.
+    const tempUserId = `tmp-u-${Date.now()}`;
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: tempUserId,
+        role: 'user',
+        content: option,
+        created_at: new Date().toISOString(),
+      },
+    ]);
+
+    const history = messagesRef.current
+      .filter((m) => m.content)
+      .map((m) => ({ role: m.role, content: m.content }));
+    history.push({ role: 'user', content: option });
+
+    setIsReadyToApply(true);
+    await runPreview(history);
   };
 
   const runPreview = async (
@@ -903,18 +997,37 @@ export const InGoalCoachWidget = forwardRef<InGoalCoachWidgetHandle, InGoalCoach
             <button
               type="button"
               onClick={handleApproveCheckIn}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+              disabled={isStreaming || isGeneratingTasks}
+              className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
             >
               <Check className="w-4 h-4" />
               Approve & Save
             </button>
-            <button
-              type="button"
-              onClick={() => setCheckInStep('conversation')}
-              className="w-full bg-gray-200 hover:bg-gray-300 text-gray-900 font-medium py-2 px-4 rounded-lg transition-colors text-sm"
-            >
-              Back to Check-in
-            </button>
+            <div className="flex items-end gap-2">
+              <textarea
+                value={reviewRefineInput}
+                onChange={(e) => setReviewRefineInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendFromReview();
+                  }
+                }}
+                placeholder="Want changes? Tell me here..."
+                rows={1}
+                className="flex-1 resize-y rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[38px] max-h-[88px]"
+                disabled={isStreaming || isGeneratingTasks}
+              />
+              <button
+                type="button"
+                onClick={handleSendFromReview}
+                disabled={!reviewRefineInput.trim() || isStreaming || isGeneratingTasks}
+                className="rounded-md bg-blue-600 p-2 text-white hover:bg-blue-700 disabled:bg-gray-300"
+                aria-label="Send message"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       ) : isInCheckIn && checkInStep === 'approved' ? (
@@ -1081,6 +1194,20 @@ export const InGoalCoachWidget = forwardRef<InGoalCoachWidgetHandle, InGoalCoach
                 );
               })
             )}
+            {isInCheckIn && (isReadyToGenerate || isGeneratingTasks) && (
+              <div className="flex flex-col items-start">
+                <div className="max-w-[85%] rounded-lg px-3 py-2 text-sm bg-gray-100 text-gray-900">
+                  <div className="flex flex-col items-start gap-1.5" aria-label="Generating tasks">
+                    <div className="flex items-center gap-1 py-0.5">
+                      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+                      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:150ms]" />
+                      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:300ms]" />
+                    </div>
+                    <span className="text-xs text-gray-500">Generating tasks...</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           <div className="border-t border-gray-200 p-3 space-y-2">
             {!isInCheckIn && taggedTasks.length > 0 && (
@@ -1102,23 +1229,6 @@ export const InGoalCoachWidget = forwardRef<InGoalCoachWidgetHandle, InGoalCoach
                   </span>
                 ))}
               </div>
-            )}
-            {isInCheckIn && isReadyToGenerate && (
-              <button
-                type="button"
-                onClick={handleGenerateTasks}
-                disabled={isGeneratingTasks || isStreaming}
-                className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
-              >
-                {isGeneratingTasks ? (
-                  <>
-                    <Loader className="w-4 h-4 animate-spin" />
-                    Generating Tasks...
-                  </>
-                ) : (
-                  `Generate Tasks for ${formatMonthLabel(checkInMode!.newMonth)}`
-                )}
-              </button>
             )}
             {!isInCheckIn && isReadyToApply && (
               <button

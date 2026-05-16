@@ -91,10 +91,13 @@ export default function MonthlyTaskBoard({
     if (allResolved || calendarMonth > currentMonth) {
       // Next month after currentMonth
       const [y, m] = currentMonth.split('-').map(Number);
-      const next = m === 12
+      const naturalNext = m === 12
         ? `${y + 1}-01`
         : `${y}-${String(m + 1).padStart(2, '0')}`;
-      candidate = next;
+      // If the natural next month is already in the past (user skipped one
+      // or more months), jump straight to the current calendar month so the
+      // user only catches up once.
+      candidate = calendarMonth > naturalNext ? calendarMonth : naturalNext;
     }
 
     // Don't show if already generated
@@ -105,18 +108,24 @@ export default function MonthlyTaskBoard({
   const defaultMonth = currentMonth || visibleMonths.at(-1) || today;
   const [activeMonth, setActiveMonth] = useState(defaultMonth);
 
-  // Legacy tasks without month assigned
+  // Legacy tasks without month assigned (exclude dropped — those are
+  // soft-deleted and shouldn't surface in the active board).
   const legacyTasks = useMemo(
-    () => localTasks.filter(t => !t.month),
+    () => localTasks.filter(t => !t.month && t.status !== 'dropped'),
     [localTasks]
   );
 
-  // Tasks for the active month
+  // Tasks for the active month (exclude dropped tasks from the visible list;
+  // they're preserved in the DB for audit but shouldn't show up alongside
+  // active work).
   const monthTasks = useMemo(
-    () => localTasks.filter(t => t.month === activeMonth).sort((a, b) => {
-      if (!a.due_date || !b.due_date) return 0;
-      return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
-    }),
+    () =>
+      localTasks
+        .filter(t => t.month === activeMonth && t.status !== 'dropped')
+        .sort((a, b) => {
+          if (!a.due_date || !b.due_date) return 0;
+          return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+        }),
     [localTasks, activeMonth]
   );
 
