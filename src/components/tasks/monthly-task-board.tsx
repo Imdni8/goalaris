@@ -24,6 +24,7 @@ interface TaskRow {
   created_at: string | null;
   updated_at: string | null;
   blocker_description: string | null;
+  task_value: number | null;
 }
 
 interface MonthlyTaskBoardProps {
@@ -34,6 +35,12 @@ interface MonthlyTaskBoardProps {
   onGenerateNewMonth?: (newMonth: string) => void;
   onAskCoachAboutTask?: (task: { id: string; title: string }) => void;
   taggedTaskIds?: Set<string>;
+  onTaskUpdate?: (update: {
+    id: string;
+    status?: string;
+    completed_at?: string | null;
+    completion_note?: string | null;
+  }) => void;
 }
 
 function getWeekNumber(dateStr: string | null): 1 | 2 | 3 | 4 | null {
@@ -57,6 +64,7 @@ export default function MonthlyTaskBoard({
   onGenerateNewMonth,
   onAskCoachAboutTask,
   taggedTaskIds,
+  onTaskUpdate,
 }: MonthlyTaskBoardProps) {
   const supabase = createClient();
   const [localTasks, setLocalTasks] = useState<TaskRow[]>(tasks);
@@ -166,6 +174,7 @@ export default function MonthlyTaskBoard({
           : t
       )
     );
+    onTaskUpdate?.({ id: taskId, status: newStatus, completed_at: completedAt });
 
     try {
       await supabase
@@ -199,6 +208,7 @@ export default function MonthlyTaskBoard({
           : t
       )
     );
+    onTaskUpdate?.(update);
   }
 
   async function handleGenerateModalClose(success?: boolean) {

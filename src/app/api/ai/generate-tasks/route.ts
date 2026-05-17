@@ -9,6 +9,11 @@ import {
   createRateLimitResponse,
 } from '@/lib/utils/rate-limiter';
 import { formatMonthLabel, snapToWeekdayInRange } from '@/lib/utils/weekdays';
+import {
+  buildInitialMonthWeights,
+  getMonthWeight,
+} from '@/lib/progress/calculate';
+import type { MonthWeight } from '@/lib/progress/types';
 
 export async function POST(request: NextRequest) {
   try {
@@ -84,6 +89,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
     }
 
+    // Ensure goal has month_weights (defensive for goals created before migration applied).
+    let monthWeights: MonthWeight[] = Array.isArray(goal.month_weights)
+      ? (goal.month_weights as MonthWeight[])
+      : [];
+    if (monthWeights.length === 0 && goal.time_bound) {
+      monthWeights = buildInitialMonthWeights(
+        new Date(goal.created_at),
+        new Date(`${goal.time_bound}T00:00:00Z`)
+      );
+      await supabase
+        .from('goals')
+        .update({ month_weights: monthWeights })
+        .eq('id', goalId);
+    }
+
     // Generate task breakdown using Gemini, bounded to [startDate, endDate]
     const taskBreakdown = await generateTaskBreakdown({
       title: goal.title,
@@ -106,6 +126,14 @@ export async function POST(request: NextRequest) {
       ? existingTasks[0].order_index + 1
       : 0;
 
+    // Compute per-task weight share for this month.
+    const monthWeight = getMonthWeight(monthWeights, targetMonth);
+    const taskCount = taskBreakdown.length;
+    const taskValue =
+      taskCount > 0 && monthWeight > 0
+        ? Number((monthWeight / taskCount).toFixed(4))
+        : 0;
+
     // Insert generated tasks. Snap any weekend due_date the model returned
     // back to the most recent weekday on or before it, clamped to startDate.
     const tasksToInsert = taskBreakdown.map((task, index) => ({
@@ -119,6 +147,7 @@ export async function POST(request: NextRequest) {
       ai_generated: true,
       is_manual: false,
       reschedule_count: 0,
+      task_value: taskValue,
     }));
 
     const { data: insertedTasks, error: insertError } = await supabase

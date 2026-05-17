@@ -29,7 +29,10 @@ export interface TaggedTask {
 }
 
 export interface InGoalCoachWidgetHandle {
-  open: (entryPoint?: 'pill' | 'task_sparkle') => void;
+  open: (
+    entryPoint?: 'pill' | 'task_sparkle' | 'progress_cta',
+    seedContext?: { tasksRemaining: number; daysRemaining: number }
+  ) => void;
 }
 
 interface GeneratedTask {
@@ -110,7 +113,8 @@ export const InGoalCoachWidget = forwardRef<InGoalCoachWidgetHandle, InGoalCoach
   const [isApplyingChanges, setIsApplyingChanges] = useState(false);
   const [reviewRefineInput, setReviewRefineInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
-  const lastEntryPointRef = useRef<'pill' | 'task_sparkle'>('pill');
+  const lastEntryPointRef = useRef<'pill' | 'task_sparkle' | 'progress_cta'>('pill');
+  const pendingSeedRef = useRef<{ tasksRemaining: number; daysRemaining: number } | null>(null);
   const checkInStartedRef = useRef<string | null>(null);
   const messagesRef = useRef<ChatMessage[]>([]);
   const isInCheckIn = !!checkInMode;
@@ -129,11 +133,87 @@ export const InGoalCoachWidget = forwardRef<InGoalCoachWidgetHandle, InGoalCoach
   };
 
   useImperativeHandle(ref, () => ({
-    open: (entryPoint = 'task_sparkle') => {
+    open: (entryPoint = 'task_sparkle', seedContext) => {
       lastEntryPointRef.current = entryPoint;
+      if (entryPoint === 'progress_cta' && seedContext) {
+        pendingSeedRef.current = seedContext;
+      }
       setMode('chat');
     },
   }), []);
+
+  // If the Progress widget CTA opened us with a seed, start a fresh thread
+  // and trigger an AI-led opener (no user message needed).
+  useEffect(() => {
+    const seed = pendingSeedRef.current;
+    if (!seed || mode !== 'chat' || isInCheckIn) return;
+    pendingSeedRef.current = null;
+
+    (async () => {
+      try {
+        setMessages([]);
+        setConversationId(null);
+        setIsStreaming(true);
+
+        const convoRes = await fetch('/api/goal-coach/conversations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ goal_id: goalId }),
+        });
+        if (!convoRes.ok) throw new Error('create conv failed');
+        const convoJson = await convoRes.json();
+        const convId = convoJson.conversation.id;
+        setConversationId(convId);
+
+        const seedSystemMessage =
+          `The user has just opened this chat because they are behind on their goal this month. ` +
+          `Do not open with a question about their goal — they know what it is. ` +
+          `Open by acknowledging that they are ${seed.tasksRemaining} tasks short with ${seed.daysRemaining} days left, ` +
+          `and ask what is getting in the way. Keep the opening message to 2 sentences.`;
+
+        const tempAiId = `tmp-a-${Date.now()}`;
+        setMessages([
+          {
+            id: tempAiId,
+            role: 'assistant',
+            content: '',
+            created_at: new Date().toISOString(),
+          },
+        ]);
+
+        const chatRes = await fetch('/api/ai/goal-coach/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            goal_id: goalId,
+            conversation_id: convId,
+            trigger_only: true,
+            seed_system_message: seedSystemMessage,
+          }),
+        });
+        if (!chatRes.ok) throw new Error(`seed trigger failed: ${chatRes.status}`);
+
+        const reader = chatRes.body?.getReader();
+        if (!reader) throw new Error('no stream');
+        const decoder = new TextDecoder();
+        let acc = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          acc += decoder.decode(value, { stream: true });
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === tempAiId ? { ...m, content: acc } : m
+            )
+          );
+        }
+      } catch (e) {
+        console.error('[InGoalCoachWidget] seed-trigger error:', e);
+      } finally {
+        setIsStreaming(false);
+      }
+    })();
+  }, [mode, goalId, isInCheckIn]);
 
   // Fire goal_coach_opened once per transition from collapsed → expanded
   const wasCollapsedRef = useRef(true);

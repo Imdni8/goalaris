@@ -8,6 +8,11 @@ import {
   createRateLimitResponse,
 } from '@/lib/utils/rate-limiter';
 import { snapToWeekdayInRange } from '@/lib/utils/weekdays';
+import {
+  calculateProgressPct,
+  redistributeMonthWeights,
+} from '@/lib/progress/calculate';
+import type { MonthWeight } from '@/lib/progress/types';
 
 const MODEL = 'gemini-2.5-flash-lite';
 const API_ENDPOINT = 'https://aiplatform.googleapis.com/v1/publishers/google/models';
@@ -172,6 +177,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Snapshot progress so far BEFORE any decisions are applied — a drop
+    // shouldn't be allowed to inflate progress_so_far retroactively.
+    const { data: allGoalTasksForProgress } = await supabase
+      .from('tasks')
+      .select('status, task_value')
+      .eq('goal_id', goalId);
+    const progressSoFar = calculateProgressPct(allGoalTasksForProgress || []);
+
     // Fetch pending tasks from previous month
     const { data: allTasks } = await supabase
       .from('tasks')
@@ -203,6 +216,7 @@ export async function POST(request: NextRequest) {
 
     // Execute task decisions
     console.log('[resolve-and-generate] Executing task decisions...');
+    const carriedIds: string[] = [];
     for (const decision of taskDecisions) {
       const task = pendingTasks.find((t) => t.id === decision.taskId);
       if (!task) continue;
@@ -223,20 +237,22 @@ export async function POST(request: NextRequest) {
           })
           .eq('id', decision.taskId);
 
+        carriedIds.push(decision.taskId);
         console.log(`[resolve-and-generate] Carried forward task ${decision.taskId}`);
       } else if (decision.action === 'drop') {
-        // Mark task as dropped
+        // Mark task as dropped and zero its weight so it can't be revived later.
         await supabase
           .from('tasks')
-          .update({ status: 'dropped' })
+          .update({ status: 'dropped', task_value: 0 })
           .eq('id', decision.taskId);
 
         console.log(`[resolve-and-generate] Dropped task ${decision.taskId}`);
       } else if (decision.action === 'break_down') {
-        // Mark original task as dropped (user will create subtasks manually or via new generation)
+        // Original task is dropped — its weight goes back into the month budget;
+        // subtasks generated below pick it up via new task_value.
         await supabase
           .from('tasks')
-          .update({ status: 'dropped' })
+          .update({ status: 'dropped', task_value: 0 })
           .eq('id', decision.taskId);
 
         console.log(`[resolve-and-generate] Marked task ${decision.taskId} as dropped for break-down`);
@@ -279,6 +295,28 @@ export async function POST(request: NextRequest) {
       startOrderIndex = (existingTasks[0].order_index || 0) + 1;
     }
 
+    // Reweight: completed months are every month already in months_generated
+    // EXCEPT the one we're now generating into. Their earned weight is locked
+    // in via task_value; remaining months split the leftover equally.
+    const existingMonthWeights: MonthWeight[] = Array.isArray(goal.month_weights)
+      ? (goal.month_weights as MonthWeight[])
+      : [];
+    const completedMonthsList = (goal.months_generated || []).filter(
+      (m: string) => m !== newMonth
+    );
+    const { monthWeights: nextWeights, newMonthWeight } = redistributeMonthWeights({
+      monthWeights: existingMonthWeights,
+      progressSoFar,
+      completedMonths: completedMonthsList,
+      newMonth,
+    });
+
+    const totalNewMonthTaskCount = (newTasks?.length || 0) + carriedIds.length;
+    const newTaskValue =
+      totalNewMonthTaskCount > 0 && newMonthWeight > 0
+        ? Number((newMonthWeight / totalNewMonthTaskCount).toFixed(4))
+        : 0;
+
     // Insert new tasks. Snap any weekend due_date the model returned back
     // to the nearest weekday inside [startDate, endDate].
     const tasksToInsert = (newTasks || []).map((task: any, index: number) => ({
@@ -292,6 +330,7 @@ export async function POST(request: NextRequest) {
       ai_generated: true,
       is_manual: false,
       reschedule_count: 0,
+      task_value: newTaskValue,
     }));
 
     const { data: insertedTasks, error: insertError } = await supabase
@@ -307,6 +346,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Carried tasks join the new month's task pool — their task_value resets
+    // to the same per-task share as the newly generated tasks.
+    if (carriedIds.length > 0) {
+      await supabase
+        .from('tasks')
+        .update({ task_value: newTaskValue })
+        .in('id', carriedIds);
+    }
+
     // Update goal: set current_month to new month and add to months_generated
     const monthsGenerated = goal.months_generated || [];
     if (!monthsGenerated.includes(newMonth)) {
@@ -319,6 +367,7 @@ export async function POST(request: NextRequest) {
       .update({
         current_month: newMonth,
         months_generated: monthsGenerated,
+        month_weights: nextWeights,
       })
       .eq('id', goalId);
 

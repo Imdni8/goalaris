@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Calendar } from 'lucide-react';
 import { ReactNode } from 'react';
+import type { VelocityState } from '@/lib/progress/types';
 
 export interface GoalListCardData {
   id: string;
@@ -10,7 +11,8 @@ export interface GoalListCardData {
   description: string | null;
   status: string | null;
   time_bound: string | null;
-  monthTasks: { done: number; total: number; label: string };
+  progress_pct: number;
+  velocity_state: VelocityState;
 }
 
 interface GoalListCardProps {
@@ -61,66 +63,54 @@ function formatTarget(iso: string | null): string {
   });
 }
 
-function StatusChip({ status }: { status: string | null }) {
-  const isDone = status === 'completed';
-  const isArchived = status === 'archived';
-  if (isDone) {
-    return (
-      <span className="inline-flex items-center gap-[6px] rounded-full bg-[#e6e8ec] px-[10px] py-[3px] text-[11.5px] font-medium leading-[1.4] text-[#4a5058]">
-        <span className="h-[6px] w-[6px] rounded-full bg-[#4a5058]" />
-        Done
-      </span>
-    );
-  }
-  if (isArchived) {
-    return (
-      <span className="inline-flex items-center gap-[6px] rounded-full bg-[#eef0f3] px-[10px] py-[3px] text-[11.5px] font-medium leading-[1.4] text-[#4a5058]">
-        <span className="h-[6px] w-[6px] rounded-full bg-[#8a909a]" />
-        Archived
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-[6px] rounded-full bg-[#d8ecdf] px-[10px] py-[3px] text-[11.5px] font-medium leading-[1.4] text-[#2f7a54]">
-      <span className="h-[6px] w-[6px] rounded-full bg-[#2f7a54]" />
-      Active
-    </span>
-  );
-}
+const VELOCITY_EMOJI: Record<Exclude<VelocityState, 'ZERO'>, string> = {
+  AHEAD: '🚀',
+  STEADY: '🧘',
+  LAGGING: '🏃',
+};
 
-function MonthProgress({
-  done,
-  total,
-  label,
+const VELOCITY_BADGE_CLS: Record<Exclude<VelocityState, 'ZERO'>, string> = {
+  AHEAD: 'border-[#abefc6] bg-[#ecfdf3]',
+  STEADY: 'border-[#b2ddff] bg-[#eff8ff]',
+  LAGGING: 'border-[#fecdca] bg-[#fef3f2]',
+};
+
+// Untitled UI 700-shades — the exact tokens used by the Figma Progress
+// component (utility-success-700, blue-700, utility-error-700).
+const VELOCITY_BAR_FILL: Record<VelocityState, string> = {
+  ZERO: 'bg-[#175cd3]',
+  AHEAD: 'bg-[#067647]',
+  STEADY: 'bg-[#175cd3]',
+  LAGGING: 'bg-[#b42318]',
+};
+
+function ProgressFooter({
+  pct,
+  state,
 }: {
-  done: number;
-  total: number;
-  label: string;
+  pct: number;
+  state: VelocityState;
 }) {
-  if (total === 0) {
-    return (
-      <span className="inline-flex items-center gap-[6px] text-[11px] font-medium uppercase tracking-[0.06em] text-[#8a909a]">
-        {label} · No tasks
-      </span>
-    );
-  }
-  const pct = (done / total) * 100;
+  const clampedPct = Math.min(100, Math.max(0, pct));
   return (
-    <div
-      className="inline-flex items-center gap-2 text-[11.5px] tabular-nums text-[#4a5058]"
-      title={`${done} of ${total} tasks done in ${label}`}
-    >
-      <span className="text-[10.5px] font-medium uppercase tracking-[0.06em] text-[#8a909a]">
-        {label}
-      </span>
-      <div className="h-1 w-16 overflow-hidden rounded-[2px] bg-[#c1c5cc]">
+    <div className="mt-[2px] flex items-center gap-2 border-t border-[#eef0f3] pt-[10px]">
+      <div className="relative h-2 flex-1 overflow-visible rounded-full bg-[#e9eaeb]">
         <div
-          className="h-full bg-[#2f7a54] transition-[width] duration-200 ease-out"
-          style={{ width: `${pct}%` }}
+          className={`h-full rounded-full transition-[width] duration-200 ease-out ${VELOCITY_BAR_FILL[state]}`}
+          style={{ width: `${clampedPct}%` }}
         />
+        {state !== 'ZERO' && (
+          <span
+            className={`absolute top-1/2 inline-flex -translate-x-1/2 -translate-y-1/2 items-center rounded-full border-2 px-1.5 py-[1px] text-[12px] leading-none ${VELOCITY_BADGE_CLS[state]}`}
+            style={{ left: `${clampedPct}%` }}
+            aria-hidden
+          >
+            {VELOCITY_EMOJI[state]}
+          </span>
+        )}
       </div>
-      <span className="font-semibold text-[#1a1d21]">
-        {done}/{total}
+      <span className="shrink-0 text-[12px] tabular-nums text-[#535862]">
+        {clampedPct}%
       </span>
     </div>
   );
@@ -171,14 +161,7 @@ export default function GoalListCard({
         Target · {formatTarget(goal.time_bound)}
       </div>
 
-      <div className="mt-[2px] flex items-center justify-between gap-2 border-t border-[#eef0f3] pt-[10px]">
-        <StatusChip status={goal.status} />
-        <MonthProgress
-          done={goal.monthTasks.done}
-          total={goal.monthTasks.total}
-          label={goal.monthTasks.label}
-        />
-      </div>
+      <ProgressFooter pct={goal.progress_pct} state={goal.velocity_state} />
     </>
   );
 

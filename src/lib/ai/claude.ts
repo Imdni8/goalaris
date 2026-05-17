@@ -15,6 +15,11 @@ import {
   MONTH_SUMMARY_PROMPT,
   THREAD_TITLE_PROMPT,
   EXTRACT_COACH_TASK_CHANGES_PROMPT,
+  COACH_NOTE_AHEAD_PROMPT,
+  COACH_NOTE_STEADY_PROMPT,
+  COACH_NOTE_LAGGING_PROMPT,
+  COACH_CTA_LAGGING_PROMPT,
+  type CoachNoteContext,
 } from './prompts';
 
 const MODEL = 'gemini-2.5-flash-lite';
@@ -91,6 +96,31 @@ export async function generateTaskBreakdown(goal: {
 }, range?: { startDate: string; endDate: string }, context?: string): Promise<TaskBreakdown> {
   const text = await callGemini(TASK_BREAKDOWN_PROMPT(goal, range, context));
   return parseTaskBreakdownResponse(text);
+}
+
+/**
+ * Generate the Progress widget coach note + (Lagging only) a CTA label.
+ */
+export async function generateCoachNote(
+  ctx: CoachNoteContext
+): Promise<{ note: string; cta: string | null }> {
+  const promptFor = {
+    AHEAD: COACH_NOTE_AHEAD_PROMPT,
+    STEADY: COACH_NOTE_STEADY_PROMPT,
+    LAGGING: COACH_NOTE_LAGGING_PROMPT,
+  } as const;
+
+  const note = (await callGemini(promptFor[ctx.velocityState](ctx))).trim();
+
+  let cta: string | null = null;
+  if (ctx.velocityState === 'LAGGING') {
+    cta = (await callGemini(COACH_CTA_LAGGING_PROMPT(ctx)))
+      .trim()
+      .replace(/^["']|["']$/g, '')
+      .replace(/[.!?]+$/g, '');
+  }
+
+  return { note, cta };
 }
 
 /**
@@ -199,13 +229,17 @@ function geminiSSEToTextStream(httpResponse: Response): ReadableStream {
  */
 export async function streamGoalCoachResponse(
   conversationHistory: Array<{ role: string; content: string }>,
-  context: Parameters<typeof IN_GOAL_COACH_PROMPT>[0]
+  context: Parameters<typeof IN_GOAL_COACH_PROMPT>[0],
+  seedSystemMessage?: string | null
 ): Promise<ReadableStream> {
   const apiKey = process.env.GOOGLE_AI_API_KEY;
   if (!apiKey) throw new Error('GOOGLE_AI_API_KEY environment variable is not set');
 
   const url = `${API_ENDPOINT}/${MODEL}:streamGenerateContent?alt=sse&key=${apiKey}`;
-  const systemPrompt = IN_GOAL_COACH_PROMPT(context);
+  const baseSystemPrompt = IN_GOAL_COACH_PROMPT(context);
+  const systemPrompt = seedSystemMessage
+    ? `${seedSystemMessage}\n\n---\n\n${baseSystemPrompt}`
+    : baseSystemPrompt;
 
   const contents = [
     { role: 'user', parts: [{ text: systemPrompt }] },
