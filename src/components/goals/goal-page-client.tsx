@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import GoalSmartCard from './goal-smart-card';
 import MonthlyTaskBoard from '@/components/tasks/monthly-task-board';
+import ProgressWidget from './progress-widget';
 import {
   InGoalCoachWidget,
   type InGoalCoachWidgetHandle,
@@ -28,6 +29,7 @@ interface TaskRow {
   created_at: string | null;
   updated_at: string | null;
   blocker_description: string | null;
+  task_value: number | null;
 }
 
 interface GoalPageClientProps {
@@ -62,6 +64,30 @@ export default function GoalPageClient({ goal: initialGoal, tasks: initialTasks 
     setCheckInMode({ newMonth, previousMonth });
   };
 
+  const handleTaskUpdate = (update: {
+    id: string;
+    status?: string;
+    completed_at?: string | null;
+    completion_note?: string | null;
+  }) => {
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === update.id
+          ? {
+              ...t,
+              ...(update.status !== undefined ? { status: update.status } : {}),
+              ...(update.completed_at !== undefined
+                ? { completed_at: update.completed_at }
+                : {}),
+              ...(update.completion_note !== undefined
+                ? { completion_note: update.completion_note }
+                : {}),
+            }
+          : t
+      )
+    );
+  };
+
   const handleTasksGenerated = async () => {
     // Refetch tasks AND goal so months_generated / current_month are fresh.
     const [tasksRes, goalRes] = await Promise.all([
@@ -81,10 +107,17 @@ export default function GoalPageClient({ goal: initialGoal, tasks: initialTasks 
 
   return (
     <div className="flex gap-8">
-      {/* Left sidebar: Goal card */}
+      {/* Left sidebar: Goal card + progress widget */}
       <aside className="w-72 flex-shrink-0">
         <div className="sticky top-8 flex flex-col gap-[10px]">
           <GoalSmartCard goal={goal} />
+          <ProgressWidget
+            goalId={goal.id}
+            currentMonth={goal.current_month}
+            monthWeights={goal.month_weights}
+            tasks={tasks}
+            onOpenCoach={(seed) => coachRef.current?.open('progress_cta', seed)}
+          />
         </div>
       </aside>
 
@@ -99,6 +132,7 @@ export default function GoalPageClient({ goal: initialGoal, tasks: initialTasks 
           onGenerateNewMonth={handleGenerateNewMonth}
           onAskCoachAboutTask={handleAskCoachAboutTask}
           taggedTaskIds={taggedTaskIds}
+          onTaskUpdate={handleTaskUpdate}
         />
       </main>
 

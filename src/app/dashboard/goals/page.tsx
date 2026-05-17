@@ -1,21 +1,12 @@
 import { createClient } from '@/lib/supabase/server';
 import GoalsListClient from '@/components/goals/goals-list-client';
 import { GoalListCardData } from '@/components/goals/goal-list-card';
-
-const MONTH_LABELS = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
+import {
+  calculateProgressPct,
+  calculateVelocity,
+  getMonthWeight,
+} from '@/lib/progress/calculate';
+import type { MonthWeight, ProgressTask } from '@/lib/progress/types';
 
 export default async function GoalsPage() {
   const supabase = await createClient();
@@ -25,32 +16,37 @@ export default async function GoalsPage() {
 
   const { data: goals, error } = await supabase
     .from('goals')
-    .select('id, title, description, status, time_bound, tasks(id, status, month)')
+    .select(
+      'id, title, description, status, time_bound, current_month, month_weights, tasks(id, status, month, task_value, completed_at)'
+    )
     .eq('user_id', user?.id ?? '')
     .order('created_at', { ascending: false });
 
   const now = new Date();
-  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const currentMonthLabel = MONTH_LABELS[now.getMonth()];
 
   const cards: GoalListCardData[] = (goals ?? []).map((g: any) => {
-    const tasks = (g.tasks ?? []) as Array<{
-      status: string | null;
-      month: string | null;
-    }>;
-    const monthTasks = tasks.filter((t) => t.month === currentMonthKey);
-    const done = monthTasks.filter((t) => t.status === 'completed').length;
+    const tasks = (g.tasks ?? []) as ProgressTask[];
+    const monthWeights = (g.month_weights ?? []) as MonthWeight[];
+    const currentMonth: string | null = g.current_month ?? null;
+
+    const progressPct = calculateProgressPct(tasks);
+    const velocity = currentMonth
+      ? calculateVelocity({
+          tasks,
+          currentMonth,
+          monthWeight: getMonthWeight(monthWeights, currentMonth),
+          today: now,
+        })
+      : { state: 'ZERO' as const };
+
     return {
       id: g.id,
       title: g.title,
       description: g.description,
       status: g.status,
       time_bound: g.time_bound,
-      monthTasks: {
-        done,
-        total: monthTasks.length,
-        label: currentMonthLabel,
-      },
+      progress_pct: progressPct,
+      velocity_state: velocity.state,
     };
   });
 

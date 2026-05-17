@@ -34,11 +34,20 @@ export async function POST(request: NextRequest) {
       conversation_id: conversationId,
       user_message: userMessage,
       tagged_task_ids: rawTaggedIds,
+      seed_system_message: seedSystemMessage,
+      trigger_only: triggerOnly,
     } = body;
 
-    if (!goalId || !conversationId || !userMessage) {
+    if (!goalId || !conversationId) {
       return NextResponse.json(
-        { error: 'Missing goal_id, conversation_id, or user_message' },
+        { error: 'Missing goal_id or conversation_id' },
+        { status: 400 }
+      );
+    }
+
+    if (!triggerOnly && !userMessage) {
+      return NextResponse.json(
+        { error: 'Missing user_message' },
         { status: 400 }
       );
     }
@@ -83,22 +92,24 @@ export async function POST(request: NextRequest) {
       taggedTasks = rows || [];
     }
 
-    // Save user message (with tagged-task snapshot in metadata if any)
-    const { error: userMsgError } = await supabase
-      .from('messages')
-      .insert({
-        conversation_id: conversationId,
-        role: 'user',
-        content: userMessage,
-        metadata:
-          taggedTasks.length > 0
-            ? { tagged_tasks: taggedTasks.map((t) => ({ id: t.id, title: t.title })) }
-            : null,
-      });
+    // Save user message (skipped in trigger_only mode where the AI opens the chat).
+    if (!triggerOnly) {
+      const { error: userMsgError } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: conversationId,
+          role: 'user',
+          content: userMessage,
+          metadata:
+            taggedTasks.length > 0
+              ? { tagged_tasks: taggedTasks.map((t) => ({ id: t.id, title: t.title })) }
+              : null,
+        });
 
-    if (userMsgError) {
-      console.error('[goal-coach/chat] save user msg failed:', userMsgError);
-      return NextResponse.json({ error: 'Failed to save message' }, { status: 500 });
+      if (userMsgError) {
+        console.error('[goal-coach/chat] save user msg failed:', userMsgError);
+        return NextResponse.json({ error: 'Failed to save message' }, { status: 500 });
+      }
     }
 
     // Build context: current month tasks/logs, active blockers, prior summaries
@@ -170,24 +181,28 @@ export async function POST(request: NextRequest) {
     }));
 
     // Stream
-    const stream = await streamGoalCoachResponse(conversationHistory, {
-      goal: {
-        title: goal.title,
-        description: goal.description,
-        specific: goal.specific,
-        measurable: goal.measurable,
-        achievable: goal.achievable,
-        relevant: goal.relevant,
-        time_bound: goal.time_bound,
-        current_month: goal.current_month,
+    const stream = await streamGoalCoachResponse(
+      conversationHistory,
+      {
+        goal: {
+          title: goal.title,
+          description: goal.description,
+          specific: goal.specific,
+          measurable: goal.measurable,
+          achievable: goal.achievable,
+          relevant: goal.relevant,
+          time_bound: goal.time_bound,
+          current_month: goal.current_month,
+        },
+        currentMonth,
+        currentMonthTasks: currentMonthTasks as any,
+        currentMonthLogs,
+        activeBlockers,
+        priorMonthSummaries: priorSummaries,
+        taggedTasks,
       },
-      currentMonth,
-      currentMonthTasks: currentMonthTasks as any,
-      currentMonthLogs,
-      activeBlockers,
-      priorMonthSummaries: priorSummaries,
-      taggedTasks,
-    });
+      typeof seedSystemMessage === 'string' ? seedSystemMessage : null
+    );
 
     const [streamForClient, streamForDB] = stream.tee();
 

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import RefinableSmartField from './refinable-smart-field';
+import { buildInitialMonthWeights } from '@/lib/progress/calculate';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -212,6 +213,10 @@ export default function ConversationalGoalForm() {
       const isIsoDate = /^\d{4}-\d{2}-\d{2}$/.test(goalDraft.time_bound || '');
       const timeBoundValue = isIsoDate ? goalDraft.time_bound : null;
 
+      const monthWeights = timeBoundValue
+        ? buildInitialMonthWeights(new Date(), new Date(`${timeBoundValue}T00:00:00Z`))
+        : [];
+
       const { data: insertedGoal, error: insertError } = await supabase.from('goals').insert([
         {
           user_id: userData.user.id,
@@ -225,6 +230,7 @@ export default function ConversationalGoalForm() {
           status: 'active',
           ai_suggested: true,
           goal_number: goalNumber,
+          month_weights: monthWeights,
         },
       ]).select('id').single();
 

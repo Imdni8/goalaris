@@ -133,6 +133,17 @@ npm run db:types            # Generate types after schema changes
 npx tsx scripts/seed-test-data.ts  # Seed test data
 ```
 
+### Applying migrations in local dev
+
+In local development, `npm run dev` reads `NEXT_PUBLIC_SUPABASE_URL` from `.env.local` and **points at the local Supabase stack** (`http://localhost:54321`), not the hosted project. New columns/tables must be applied to that local DB:
+
+- Preferred: `npx supabase db push` — applies every migration in `supabase/migrations/` to the local stack.
+- Alternative: paste the migration SQL into the local Studio at `http://localhost:54323` → SQL Editor.
+
+**Do not** rely on running migrations only in the hosted Supabase Dashboard SQL Editor while developing locally. The two databases are independent.
+
+Symptom of this mistake: queries that touch the new column fail with `column X does not exist`, but unrelated queries still work because they don't reference the new column. Existing rows render fine; the new feature 500s. If a teammate hits this on a hosted environment, the fix is **Project Settings → API → Restart Server** in the Supabase dashboard (a manual `NOTIFY pgrst, 'reload schema';` is not always honored on the hosted plan).
+
 ## Key Architectural Patterns
 
 ### 1. Server Components by Default
