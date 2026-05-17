@@ -1,10 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { Monitor } from 'lucide-react';
+
+const MOBILE_FRIENDLY_PATHS = ['/releases'];
 
 export default function MobileWarning() {
   const [show, setShow] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const check = () => setShow(window.innerWidth < 768);
@@ -13,7 +17,11 @@ export default function MobileWarning() {
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  if (!show) return null;
+  const isMobileFriendly = MOBILE_FRIENDLY_PATHS.some(
+    (p) => pathname === p || pathname?.startsWith(`${p}/`),
+  );
+
+  if (!show || isMobileFriendly) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-6">
