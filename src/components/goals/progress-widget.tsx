@@ -130,14 +130,17 @@ export default function ProgressWidget({
     const params = new URLSearchParams({ goalId, month: currentMonth, state });
     fetch(`/api/ai/coach-note?${params.toString()}`, { signal: controller.signal })
       .then(async (res) => {
-        if (res.ok) {
-          const json = await res.json();
-          setNoteText(json.note_text ?? null);
-          setCtaText(json.cta_text ?? null);
+        if (!res.ok) {
+          const body = await res.text().catch(() => '');
+          throw new Error(`coach-note GET ${res.status}: ${body}`);
+        }
+        const cached = await res.json();
+        if (cached?.note_text) {
+          setNoteText(cached.note_text);
+          setCtaText(cached.cta_text ?? null);
           successfulFetchStateRef.current = state;
           return;
         }
-        if (res.status !== 404) throw new Error('coach-note GET failed');
         // Cache miss → generate.
         const post = await fetch('/api/ai/coach-note', {
           method: 'POST',
@@ -145,7 +148,10 @@ export default function ProgressWidget({
           body: JSON.stringify({ goalId, month: currentMonth, state }),
           signal: controller.signal,
         });
-        if (!post.ok) throw new Error('coach-note POST failed');
+        if (!post.ok) {
+          const body = await post.text().catch(() => '');
+          throw new Error(`coach-note POST ${post.status}: ${body}`);
+        }
         const json = await post.json();
         setNoteText(json.note_text ?? null);
         setCtaText(json.cta_text ?? null);
