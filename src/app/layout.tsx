@@ -1,8 +1,22 @@
 import type { Metadata } from 'next';
+import { IBM_Plex_Serif, Nunito } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { Analytics } from '@vercel/analytics/react';
 import MobileWarning from '@/components/shared/mobile-warning';
+
+const ibmPlexSerif = IBM_Plex_Serif({
+  subsets: ['latin'],
+  variable: '--font-heading',
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+});
+
+const nunito = Nunito({
+  subsets: ['latin'],
+  variable: '--font-body',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Goalaris',
@@ -17,7 +31,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
+      <body className={`${ibmPlexSerif.variable} ${nunito.variable}`}>
         <MobileWarning />
         {children}
         <Toaster />

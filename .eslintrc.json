@@ -1,3 +1,28 @@
 {
-  "extends": "next/core-web-vitals"
+  "extends": [
+    "next/core-web-vitals",
+    "plugin:storybook/recommended",
+    "plugin:tailwindcss/recommended"
+  ],
+  "rules": {
+    "tailwindcss/no-arbitrary-value": "error",
+    "tailwindcss/classnames-order": "warn",
+    "tailwindcss/no-custom-classname": "off",
+
+    "no-restricted-syntax": [
+      "error",
+      {
+        "selector": "JSXAttribute[name.name='className'] > Literal[value=/\\b(bg|text|border|ring|fill|stroke|from|via|to|divide)-(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\\d+/]",
+        "message": "Use a semantic token (e.g. bg-primary, text-foreground) instead of a Tailwind palette class. See docs/design-system.md."
+      },
+      {
+        "selector": "CallExpression[callee.name='cn'] Literal[value=/\\b(bg|text|border|ring|fill|stroke|from|via|to|divide)-(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\\d+/]",
+        "message": "Use a semantic token (e.g. bg-primary, text-foreground) instead of a Tailwind palette class. See docs/design-system.md."
+      },
+      {
+        "selector": "JSXAttribute[name.name='style'] Property > Literal[value=/^#[0-9a-fA-F]{3,8}$/]",
+        "message": "Use a CSS variable instead of a hardcoded hex color (e.g. rgb(var(--primary))). See docs/design-system.md."
+      }
+    ]
+  }
 }

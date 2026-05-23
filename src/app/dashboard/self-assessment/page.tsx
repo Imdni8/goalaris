@@ -56,7 +56,7 @@ export default async function SelfAssessmentPage() {
   return (
     <div className="mx-auto max-w-5xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Self-Assessment Generator</h1>
+        <h1 className="text-display">Self-Assessment Generator</h1>
         <p className="mt-2 text-gray-600">
           Generate a professional self-assessment summary from your goals and progress logs
         </p>

@@ -20,7 +20,7 @@ export default async function SettingsPage() {
     <div className="flex justify-center">
       <div className="w-full max-w-2xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">Profile Settings</h1>
+          <h1 className="text-display">Profile Settings</h1>
           <p className="text-slate-600 mt-2">Manage your profile and career goals</p>
         </div>
 

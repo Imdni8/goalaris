@@ -35,7 +35,7 @@ export default async function CoachPage({
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <MessageCircle className="w-8 h-8 text-blue-600" />
             </div>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+            <h2 className="text-heading mb-2">
               Welcome to Your Career Coach
             </h2>
             <p className="text-gray-600 mb-6">

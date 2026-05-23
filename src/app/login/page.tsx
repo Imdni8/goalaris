@@ -47,7 +47,7 @@ export default function LoginPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white bg-opacity-90">
           <div className="text-center">
             <div className="mb-4 inline-block h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-            <p className="text-lg font-medium text-gray-700">Logging you in...</p>
+            <p className="text-label text-muted-foreground">Logging you in...</p>
           </div>
         </div>
       )}
@@ -55,12 +55,12 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-blue-600">goalaris</h1>
+          <h1 className="text-display text-primary">goalaris</h1>
         </div>
 
         {/* Login Card */}
         <div className="card">
-          <h2 className="mb-6 text-2xl font-bold text-gray-900">Login</h2>
+          <h2 className="mb-6 text-heading">Login</h2>
 
           {error && (
             <div className="mb-4 rounded-lg bg-red-50 p-3 text-red-700">{error}</div>

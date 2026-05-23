@@ -4,7 +4,7 @@ export default function NewGoalPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Create New Goal</h1>
+        <h1 className="text-display">Create New Goal</h1>
         <p className="mt-2 text-gray-600">
           Define a SMART goal to track your annual progress and career development
         </p>

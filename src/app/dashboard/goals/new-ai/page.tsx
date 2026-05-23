@@ -12,7 +12,7 @@ export default function NewAiGoalPage() {
     <div className="mx-auto max-w-3xl">
       <div className="mb-8 flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Review Goal</h1>
+          <h1 className="text-display">Review Goal</h1>
           <p className="mt-2 text-gray-600">
             Review your AI-generated SMART goal, make any edits you&apos;d like, then save it to your goals.
           </p>

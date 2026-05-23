@@ -1,0 +1,22 @@
+npm ERR! code ERESOLVE
+npm ERR! ERESOLVE unable to resolve dependency tree
+npm ERR! 
+npm ERR! While resolving: goalaris@0.1.0
+npm ERR! Found: storybook@8.6.18
+npm ERR! node_modules/storybook
+npm ERR!   dev storybook@"8.6.18" from the root project
+npm ERR! 
+npm ERR! Could not resolve dependency:
+npm ERR! peer storybook@"^10.4.1" from eslint-plugin-storybook@10.4.1
+npm ERR! node_modules/eslint-plugin-storybook
+npm ERR!   dev eslint-plugin-storybook@"*" from the root project
+npm ERR! 
+npm ERR! Fix the upstream dependency conflict, or retry
+npm ERR! this command with --force or --legacy-peer-deps
+npm ERR! to accept an incorrect (and potentially broken) dependency resolution.
+npm ERR! 
+npm ERR! 
+npm ERR! For a full report see:
+npm ERR! /Users/tousifrahaman/.npm/_logs/2026-05-23T14_34_48_243Z-eresolve-report.txt
+
+npm ERR! A complete log of this run can be found in: /Users/tousifrahaman/.npm/_logs/2026-05-23T14_34_48_243Z-debug-0.log
