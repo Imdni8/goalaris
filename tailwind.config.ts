@@ -49,6 +49,16 @@ const config: Config = {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+      zIndex: {
+        toast: '100',
+      },
+      maxWidth: {
+        toast: '420px',
+      },
+      translate: {
+        'toast-swipe-end': 'var(--radix-toast-swipe-end-x)',
+        'toast-swipe-move': 'var(--radix-toast-swipe-move-x)',
+      },
     },
   },
   plugins: [require('@tailwindcss/typography')],
