@@ -41,7 +41,7 @@ export const WithLabel: Story = {
         Email address
       </label>
       <Input id="email" type="email" placeholder="you@example.com" />
-      <p className="text-caption">We'll never share your email.</p>
+      <p className="text-caption">We&apos;ll never share your email.</p>
     </div>
   ),
 };
