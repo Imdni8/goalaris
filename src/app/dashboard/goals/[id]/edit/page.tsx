@@ -22,7 +22,7 @@ export default async function EditGoalPage({ params }: { params: { id: string } 
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Edit Goal</h1>
+        <h1 className="text-display">Edit Goal</h1>
         <p className="mt-2 text-gray-600">Update your goal details</p>
       </div>
 

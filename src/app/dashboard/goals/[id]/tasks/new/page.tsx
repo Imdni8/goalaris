@@ -33,7 +33,7 @@ export default async function NewTaskPage({ params }: { params: { id: string } }
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Add Task</h1>
+        <h1 className="text-display">Add Task</h1>
         <p className="mt-2 text-gray-600">
           For goal: <span className="font-medium">{goal.title}</span>
         </p>

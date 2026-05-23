@@ -20,7 +20,7 @@ export default function DashboardError({
     <div className="flex min-h-[600px] flex-col items-center justify-center p-8">
       <div className="max-w-md space-y-6 text-center">
         <div className="space-y-2">
-          <h2 className="text-2xl font-bold text-red-600">Dashboard Error</h2>
+          <h2 className="text-heading text-destructive">Dashboard Error</h2>
           <p className="text-muted-foreground">
             Something went wrong while loading the dashboard.
           </p>
