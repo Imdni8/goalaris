@@ -282,13 +282,14 @@ export default function ConversationalGoalForm() {
   // Chat step
   if (step === 'chat') {
     return (
-      <div className="flex flex-col h-[600px] space-y-4">
-        {error && <div className="rounded-lg bg-red-50 p-4 text-red-700">{error}</div>}
+      <div className="flex flex-col space-y-4" style={{ height: 600 }}>
+        {error && <div className="rounded-lg bg-destructive/10 p-4 text-destructive">{error}</div>}
 
         {/* Messages container */}
         <div
           ref={chatContainerRef}
-          className="flex-1 overflow-y-auto space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4"
+          className="flex-1 space-y-4 overflow-y-auto rounded-lg border border-border bg-muted p-4"
+          aria-label="Conversation"
         >
           {messages.map((msg, idx) => (
             <div
@@ -298,11 +299,11 @@ export default function ConversationalGoalForm() {
               <div
                 className={`max-w-sm rounded-lg px-4 py-2 ${
                   msg.role === 'user'
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-white border border-gray-200 text-gray-900'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'border border-border bg-surface text-foreground'
                 }`}
               >
-                <p className="text-sm">{msg.content}</p>
+                <p className="text-label">{msg.content}</p>
               </div>
             </div>
           ))}
@@ -311,13 +312,15 @@ export default function ConversationalGoalForm() {
 
         {/* Input form */}
         <form onSubmit={handleSendMessage} className="flex gap-2">
+          <label htmlFor="cg-user-input" className="sr-only">Your message</label>
           <input
+            id="cg-user-input"
             type="text"
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
             placeholder="Tell me more about your goal..."
             disabled={loading}
-            className="flex-1 rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none disabled:bg-gray-100"
+            className="flex-1 rounded-lg border border-input bg-surface px-4 py-2 text-foreground focus:border-ring focus:outline-none disabled:bg-muted"
           />
           <Button type="submit" disabled={loading || !userInput.trim()}>
             {loading ? 'Sending...' : 'Send'}
@@ -330,7 +333,7 @@ export default function ConversationalGoalForm() {
               type="button"
               variant="ghost"
               onClick={() => setStep('review')}
-              className="text-blue-600 hover:text-blue-700"
+              className="text-primary hover:text-primary/80"
             >
               Back to review
             </Button>
@@ -344,40 +347,42 @@ export default function ConversationalGoalForm() {
   if (step === 'review' && goalDraft) {
     return (
       <div className="space-y-6">
-        {error && <div className="rounded-lg bg-red-50 p-4 text-red-700">{error}</div>}
+        {error && <div className="rounded-lg bg-destructive/10 p-4 text-destructive">{error}</div>}
 
-        <div className="rounded-lg bg-blue-50 p-4">
+        <div className="rounded-lg bg-primary/10 p-4">
           <div className="flex items-start gap-3">
             <div className="text-2xl">✨</div>
             <div>
-              <h3 className="font-semibold text-blue-900">AI-Generated SMART Goal</h3>
-              <p className="text-sm text-blue-700">Review and edit as needed, then save to your goals.</p>
+              <h3 className="text-title text-primary">AI-Generated SMART Goal</h3>
+              <p className="text-label text-primary">Review and edit as needed, then save to your goals.</p>
             </div>
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Goal Title</label>
+          <label htmlFor="cg-title" className="block text-label text-foreground">Goal Title</label>
           <input
+            id="cg-title"
             type="text"
             value={goalDraft.title}
             onChange={(e) => setGoalDraft({ ...goalDraft, title: e.target.value })}
-            className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none"
+            className="mt-1 w-full rounded-lg border border-input bg-surface px-4 py-2 text-foreground focus:border-ring focus:outline-none"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Description</label>
+          <label htmlFor="cg-description" className="block text-label text-foreground">Description</label>
           <textarea
+            id="cg-description"
             value={goalDraft.description}
             onChange={(e) => setGoalDraft({ ...goalDraft, description: e.target.value })}
-            className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none overflow-hidden resize-none"
+            className="mt-1 w-full resize-none overflow-hidden rounded-lg border border-input bg-surface px-4 py-2 text-foreground focus:border-ring focus:outline-none"
             style={{ minHeight: '60px', maxHeight: '400px' }}
           />
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-          <h3 className="mb-4 font-semibold text-gray-900">SMART Criteria</h3>
+        <div className="rounded-lg border border-border bg-muted p-4">
+          <h3 className="mb-4 text-title">SMART Criteria</h3>
           <div className="space-y-4">
             <RefinableSmartField
               label="Specific - What exactly will you accomplish?"
@@ -420,14 +425,15 @@ export default function ConversationalGoalForm() {
             />
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label htmlFor="cg-time-bound" className="block text-label text-foreground">
                 Time-bound - Target completion date
               </label>
               <input
+                id="cg-time-bound"
                 type="date"
                 value={goalDraft.time_bound}
                 onChange={(e) => setGoalDraft({ ...goalDraft, time_bound: e.target.value })}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none"
+                className="mt-1 w-full rounded-lg border border-input bg-surface px-4 py-2 text-foreground focus:border-ring focus:outline-none"
               />
             </div>
           </div>
@@ -436,7 +442,7 @@ export default function ConversationalGoalForm() {
         <div className="flex justify-end gap-4">
           <Button
             type="button"
-            variant="outline"
+            variant="tertiary"
             onClick={() => setStep('chat')}
             disabled={loading}
           >

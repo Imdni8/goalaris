@@ -10,7 +10,7 @@ import {
 } from './card';
 
 const meta: Meta<typeof Card> = {
-  title: 'UI/Card',
+  title: 'Molecules/Card',
   component: Card,
   tags: ['autodocs'],
 };
@@ -32,19 +32,20 @@ export const Default: Story = {
   ),
 };
 
-export const WithFooter: Story = {
+export const WithActionFooter: Story = {
+  name: 'With footer actions',
   render: () => (
     <Card className="w-80">
       <CardHeader>
-        <CardTitle>Confirm action</CardTitle>
-        <CardDescription>This action cannot be undone.</CardDescription>
+        <CardTitle>Weekly summary</CardTitle>
+        <CardDescription>3 of 5 tasks complete.</CardDescription>
       </CardHeader>
       <CardContent>
-        <p className="text-body">Are you sure you want to proceed?</p>
+        <p className="text-body">Keep the momentum going into next week.</p>
       </CardContent>
       <CardFooter className="flex justify-end gap-2">
-        <Button variant="outline">Cancel</Button>
-        <Button variant="destructive">Delete</Button>
+        <Button variant="tertiary">Dismiss</Button>
+        <Button>View details</Button>
       </CardFooter>
     </Card>
   ),

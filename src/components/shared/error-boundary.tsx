@@ -43,7 +43,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="flex gap-2 justify-center">
               <Button
                 onClick={() => this.setState({ hasError: false })}
-                variant="outline"
+                variant="tertiary"
               >
                 Try again
               </Button>

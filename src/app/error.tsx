@@ -28,7 +28,7 @@ export default function Error({
         </div>
 
         <div className="flex gap-3 justify-center">
-          <Button onClick={reset} variant="outline">
+          <Button onClick={reset} variant="tertiary">
             Try again
           </Button>
           <Button onClick={() => window.location.href = '/'}>

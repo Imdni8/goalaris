@@ -195,36 +195,45 @@ export default function AssessmentGenerator({
     }
   };
 
+  const statusBadgeClass = (status: string) => {
+    if (status === 'active' || status === 'final') {
+      return status === 'final'
+        ? 'bg-success/15 text-success'
+        : 'bg-primary/10 text-primary';
+    }
+    if (status === 'completed') return 'bg-success/15 text-success';
+    return 'bg-muted text-muted-foreground';
+  };
+
+  const dateInputClass =
+    'w-full rounded-md border border-input bg-surface px-3 py-2 text-label text-foreground focus:outline-none focus:ring-2 focus:ring-ring';
+
   return (
     <div className="space-y-6">
       {/* Configuration Panel */}
       <div className="card">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Configuration</h2>
+        <h2 className="mb-4 text-title">Configuration</h2>
 
         {/* Goal Selection */}
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <label className="text-sm font-medium text-gray-700">Select Goals</label>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={selectAllActive}
-            >
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-label text-foreground">Select Goals</span>
+            <Button variant="tertiary" size="sm" onClick={selectAllActive}>
               Select All Active
             </Button>
           </div>
 
           {goals.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3">
+            <div className="grid max-h-48 grid-cols-1 gap-2 overflow-y-auto rounded-lg border border-border p-3 md:grid-cols-2">
               {goals.map(goal => {
                 const isDisabled = goal.actionLogCount === 0;
                 return (
                   <label
                     key={goal.id}
-                    className={`flex items-center gap-2 p-2 rounded ${
+                    className={`flex items-center gap-2 rounded p-2 ${
                       isDisabled
-                        ? 'opacity-50 cursor-not-allowed'
-                        : 'hover:bg-gray-50 cursor-pointer'
+                        ? 'cursor-not-allowed opacity-50'
+                        : 'cursor-pointer hover:bg-muted'
                     }`}
                     title={isDisabled ? 'This goal has no action logs yet. Log some progress before generating an assessment.' : ''}
                   >
@@ -233,19 +242,17 @@ export default function AssessmentGenerator({
                       checked={selectedGoals.includes(goal.id)}
                       onChange={() => !isDisabled && toggleGoal(goal.id)}
                       disabled={isDisabled}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="h-4 w-4 rounded border-input text-primary focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                     />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-sm text-gray-900 block truncate">{goal.title}</span>
-                      <span className="text-xs text-gray-500">
+                    <div className="min-w-0 flex-1">
+                      <span className="block truncate text-label text-foreground">{goal.title}</span>
+                      <span className="text-caption">
                         {goal.actionLogCount} log{goal.actionLogCount !== 1 ? 's' : ''}
                       </span>
                     </div>
-                    <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${
-                      goal.status === 'active' ? 'bg-blue-100 text-blue-700' :
-                      goal.status === 'completed' ? 'bg-green-100 text-green-700' :
-                      'bg-gray-100 text-gray-700'
-                    }`}>
+                    <span
+                      className={`whitespace-nowrap rounded-full px-2 py-0.5 text-caption ${statusBadgeClass(goal.status)}`}
+                    >
                       {goal.status}
                     </span>
                   </label>
@@ -253,7 +260,7 @@ export default function AssessmentGenerator({
               })}
             </div>
           ) : (
-            <p className="text-sm text-gray-500 py-4 text-center">
+            <p className="py-4 text-center text-label text-muted-foreground">
               No goals found. Create some goals first.
             </p>
           )}
@@ -261,31 +268,33 @@ export default function AssessmentGenerator({
 
         {/* Date Range */}
         <div className="mb-6">
-          <label className="text-sm font-medium text-gray-700 mb-3 block">Date Range (Optional)</label>
-          <div className="flex flex-wrap gap-3 items-end">
-            <div className="flex-1 min-w-[200px]">
-              <label className="text-xs text-gray-500 mb-1 block">From</label>
+          <p className="mb-3 text-label text-foreground">Date Range (Optional)</p>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex-1" style={{ minWidth: 200 }}>
+              <label htmlFor="assessment-from" className="mb-1 block text-caption">From</label>
               <input
+                id="assessment-from"
                 type="date"
                 value={dateRange.start}
                 onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={dateInputClass}
               />
             </div>
-            <div className="flex-1 min-w-[200px]">
-              <label className="text-xs text-gray-500 mb-1 block">To</label>
+            <div className="flex-1" style={{ minWidth: 200 }}>
+              <label htmlFor="assessment-to" className="mb-1 block text-caption">To</label>
               <input
+                id="assessment-to"
                 type="date"
                 value={dateRange.end}
                 onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={dateInputClass}
               />
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={setLast6Months}>
+              <Button variant="tertiary" size="sm" onClick={setLast6Months}>
                 Last 6 Months
               </Button>
-              <Button variant="outline" size="sm" onClick={setFullYear}>
+              <Button variant="tertiary" size="sm" onClick={setFullYear}>
                 Full Year
               </Button>
             </div>
@@ -302,14 +311,14 @@ export default function AssessmentGenerator({
             {isGenerating ? 'Generating...' : 'Generate Assessment'}
           </Button>
           {selectedGoals.length > 0 && (
-            <span className="text-sm text-gray-600">
+            <span className="text-label text-muted-foreground">
               {selectedGoals.length} goal{selectedGoals.length !== 1 ? 's' : ''} selected
             </span>
           )}
         </div>
 
         {error && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-label text-destructive">
             {error}
           </div>
         )}
@@ -318,18 +327,18 @@ export default function AssessmentGenerator({
       {/* Generated Assessment Editor */}
       {generatedAssessment && (
         <div className="card">
-          <div className="flex items-start justify-between mb-4">
+          <div className="mb-4 flex items-start justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Generated Assessment</h2>
+              <h2 className="text-title">Generated Assessment</h2>
               {stats && (
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="mt-1 text-label text-muted-foreground">
                   Based on {stats.goalCount} goal{stats.goalCount !== 1 ? 's' : ''} and {stats.actionCount} action{stats.actionCount !== 1 ? 's' : ''}
                 </p>
               )}
             </div>
             <div className="flex gap-2">
               <Button
-                variant="outline"
+                variant="tertiary"
                 size="sm"
                 onClick={() => {
                   const title = prompt('Enter a title for this assessment:', `Self-Assessment ${new Date().toLocaleDateString()}`);
@@ -360,29 +369,31 @@ export default function AssessmentGenerator({
       {/* Saved Assessments List */}
       {savedAssessments.length > 0 && (
         <div className="card">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Saved Assessments</h2>
+          <h2 className="mb-4 text-title">Saved Assessments</h2>
           <div className="space-y-2">
             {savedAssessments.map(assessment => (
               <div
                 key={assessment.id}
                 onClick={() => loadAssessment(assessment.id)}
-                className={`flex items-center justify-between p-3 rounded-lg transition-colors cursor-pointer ${
+                className={`flex cursor-pointer items-center justify-between rounded-lg p-3 transition-colors ${
                   loadedAssessmentId === assessment.id
-                    ? 'bg-blue-50 border-2 border-blue-500'
-                    : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
+                    ? 'border-2 border-primary bg-primary/10'
+                    : 'border-2 border-transparent bg-muted hover:bg-muted/70'
                 }`}
               >
                 <div>
-                  <h3 className="font-medium text-gray-900">{assessment.title}</h3>
-                  <p className="text-xs text-gray-500 mt-0.5">
+                  <h3 className="text-label text-foreground">{assessment.title}</h3>
+                  <p className="mt-0.5 text-caption">
                     Last updated: {new Date(assessment.updated_at).toLocaleDateString()}
                   </p>
                 </div>
-                <span className={`text-xs px-2 py-1 rounded-full ${
-                  assessment.status === 'final'
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-gray-200 text-gray-700'
-                }`}>
+                <span
+                  className={`rounded-full px-2 py-1 text-caption ${
+                    assessment.status === 'final'
+                      ? 'bg-success/15 text-success'
+                      : 'bg-muted text-muted-foreground'
+                  }`}
+                >
                   {assessment.status}
                 </span>
               </div>

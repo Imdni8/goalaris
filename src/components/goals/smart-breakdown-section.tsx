@@ -197,7 +197,7 @@ export default function SmartBreakdownSection({
                         >
                           {isRefining ? 'Refining...' : 'Refine with AI'}
                         </Button>
-                        <Button variant="outline" size="sm" onClick={handleCancelRefine}>
+                        <Button variant="tertiary" size="sm" onClick={handleCancelRefine}>
                           Cancel
                         </Button>
                       </div>
@@ -221,7 +221,7 @@ export default function SmartBreakdownSection({
                             <Check className="mr-1 h-4 w-4" />
                             {isSaving ? 'Saving...' : 'Accept & Save'}
                           </Button>
-                          <Button variant="outline" size="sm" onClick={handleCancelRefine}>
+                          <Button variant="tertiary" size="sm" onClick={handleCancelRefine}>
                             <X className="mr-1 h-4 w-4" />
                             Discard
                           </Button>

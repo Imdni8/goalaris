@@ -167,7 +167,7 @@ export default function EditGoalForm({ goal }: { goal: Goal }) {
       <div className="flex justify-end gap-4">
         <Button
           type="button"
-          variant="outline"
+          variant="tertiary"
           onClick={() => router.back()}
           disabled={loading}
         >
