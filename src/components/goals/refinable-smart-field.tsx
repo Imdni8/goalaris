@@ -134,7 +134,7 @@ export default function RefinableSmartField({
             >
               {loading ? 'Refining...' : 'Submit'}
             </Button>
-            <Button type="button" variant="outline" size="sm" onClick={handleCancel}>
+            <Button type="button" variant="tertiary" size="sm" onClick={handleCancel}>
               Cancel
             </Button>
           </div>

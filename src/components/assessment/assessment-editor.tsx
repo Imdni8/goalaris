@@ -128,14 +128,14 @@ export default function AssessmentEditor({
       <div className="flex items-center justify-between border-b border-gray-200 pb-3">
         <div className="flex gap-2">
           <Button
-            variant={isEditing ? 'default' : 'outline'}
+            variant={isEditing ? 'primary' : 'tertiary'}
             size="sm"
             onClick={() => setIsEditing(!isEditing)}
           >
             {isEditing ? 'View Mode' : 'Edit Mode'}
           </Button>
           <Button
-            variant="outline"
+            variant="tertiary"
             size="sm"
             onClick={copyToClipboard}
           >
@@ -197,7 +197,7 @@ export default function AssessmentEditor({
                 {isRefining ? 'Refining...' : 'Refine with AI'}
               </Button>
               <Button
-                variant="outline"
+                variant="tertiary"
                 size="sm"
                 onClick={resetRefinement}
               >
@@ -232,14 +232,14 @@ export default function AssessmentEditor({
                   Accept Changes
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="tertiary"
                   onClick={() => setShowPreview(false)}
                   className="flex-1"
                 >
                   Try Again
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="tertiary"
                   onClick={resetRefinement}
                 >
                   Cancel

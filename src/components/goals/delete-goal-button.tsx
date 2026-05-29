@@ -35,7 +35,7 @@ export default function DeleteGoalButton({ goalId }: { goalId: string }) {
     return (
       <div className="flex gap-2">
         <Button
-          variant="outline"
+          variant="tertiary"
           size="sm"
           onClick={() => setShowConfirm(false)}
           disabled={loading}

@@ -51,7 +51,7 @@ export default function GenerateTasksButton({ goalId }: GenerateTasksButtonProps
       <Button
         onClick={handleGenerate}
         disabled={loading}
-        variant="outline"
+        variant="tertiary"
         size="sm"
       >
         {loading ? 'Generating...' : '✨ Generate Tasks with AI'}

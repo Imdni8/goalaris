@@ -1,10 +1,16 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { Input } from './input';
+import docs from '../../../docs/components/input.md?raw';
 
 const meta: Meta<typeof Input> = {
-  title: 'UI/Input',
+  title: 'Atoms/Input',
   component: Input,
   tags: ['autodocs'],
+  parameters: {
+    docs: {
+      description: { component: docs },
+    },
+  },
   argTypes: {
     type: {
       control: 'select',

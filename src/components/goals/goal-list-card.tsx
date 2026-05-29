@@ -42,7 +42,7 @@ function highlight(text: string | null, query: string): ReactNode {
     parts.push(
       <mark
         key={key++}
-        className="rounded-sm bg-[#d8ecdf] px-[1px] text-[#2f7a54]"
+        className="rounded-sm bg-success/20 px-px text-success"
       >
         {text.slice(idx, idx + q.length)}
       </mark>
@@ -70,18 +70,16 @@ const VELOCITY_EMOJI: Record<Exclude<VelocityState, 'ZERO'>, string> = {
 };
 
 const VELOCITY_BADGE_CLS: Record<Exclude<VelocityState, 'ZERO'>, string> = {
-  AHEAD: 'border-[#abefc6] bg-[#ecfdf3]',
-  STEADY: 'border-[#b2ddff] bg-[#eff8ff]',
-  LAGGING: 'border-[#fecdca] bg-[#fef3f2]',
+  AHEAD: 'border-success/40 bg-success/10',
+  STEADY: 'border-primary/40 bg-primary/10',
+  LAGGING: 'border-destructive/40 bg-destructive/10',
 };
 
-// Untitled UI 700-shades — the exact tokens used by the Figma Progress
-// component (utility-success-700, blue-700, utility-error-700).
 const VELOCITY_BAR_FILL: Record<VelocityState, string> = {
-  ZERO: 'bg-[#175cd3]',
-  AHEAD: 'bg-[#067647]',
-  STEADY: 'bg-[#175cd3]',
-  LAGGING: 'bg-[#b42318]',
+  ZERO: 'bg-primary',
+  AHEAD: 'bg-success',
+  STEADY: 'bg-primary',
+  LAGGING: 'bg-destructive',
 };
 
 function ProgressFooter({
@@ -93,15 +91,15 @@ function ProgressFooter({
 }) {
   const clampedPct = Math.min(100, Math.max(0, pct));
   return (
-    <div className="mt-[2px] flex items-center gap-2 border-t border-[#eef0f3] pt-[10px]">
-      <div className="relative h-2 flex-1 overflow-visible rounded-full bg-[#e9eaeb]">
+    <div className="mt-0.5 flex items-center gap-2 border-t border-border pt-2.5">
+      <div className="relative h-2 flex-1 overflow-visible rounded-full bg-muted">
         <div
-          className={`h-full rounded-full transition-[width] duration-200 ease-out ${VELOCITY_BAR_FILL[state]}`}
+          className={`h-full rounded-full transition-all duration-150 ease-out ${VELOCITY_BAR_FILL[state]}`}
           style={{ width: `${clampedPct}%` }}
         />
         {state !== 'ZERO' && (
           <span
-            className={`absolute top-1/2 inline-flex -translate-x-1/2 -translate-y-1/2 items-center rounded-full border-2 px-1.5 py-[1px] text-[12px] leading-none ${VELOCITY_BADGE_CLS[state]}`}
+            className={`absolute top-1/2 inline-flex -translate-x-1/2 -translate-y-1/2 items-center rounded-full border-2 px-1.5 py-px text-xs leading-none ${VELOCITY_BADGE_CLS[state]}`}
             style={{ left: `${clampedPct}%` }}
             aria-hidden
           >
@@ -109,7 +107,7 @@ function ProgressFooter({
           </span>
         )}
       </div>
-      <span className="shrink-0 text-[12px] tabular-nums text-[#535862]">
+      <span className="shrink-0 text-caption tabular-nums">
         {clampedPct}%
       </span>
     </div>
@@ -138,25 +136,31 @@ export default function GoalListCard({
   };
 
   const cardClass = [
-    'group relative flex min-h-[196px] cursor-pointer select-none flex-col gap-3 rounded-[10px] border bg-white p-4 transition-[box-shadow,border-color,transform] duration-[140ms]',
+    'group relative flex cursor-pointer select-none flex-col gap-3 rounded-lg border bg-surface p-4 transition-shadow duration-150',
     selected
-      ? 'border-[#2f7a54] shadow-[0_0_0_1px_#2f7a54,0_8px_24px_-12px_rgba(47,122,84,0.4)]'
-      : 'border-[#e4e6ea] hover:border-[#cfd3d9] hover:shadow-[0_2px_0_rgba(10,10,10,0.02),0_8px_24px_-12px_rgba(10,10,10,0.15)]',
+      ? 'border-success shadow-md ring-1 ring-success'
+      : 'border-border hover:border-muted-foreground hover:shadow-md',
   ].join(' ');
 
   const inner = (
     <>
-      <header className="flex min-h-[22px] items-start justify-between gap-[10px]">
-        <h3 className="m-0 line-clamp-2 overflow-hidden text-[15px] font-semibold leading-[1.3] tracking-[-0.005em] text-[#1a1d21] [text-wrap:balance]">
+      <header
+        className="flex items-start justify-between gap-2.5"
+        style={{ minHeight: 22 }}
+      >
+        <h3
+          className="m-0 line-clamp-2 overflow-hidden text-title text-foreground"
+          style={{ textWrap: 'balance' }}
+        >
           {highlight(goal.title, query)}
         </h3>
       </header>
 
-      <p className="m-0 line-clamp-2 flex-1 overflow-hidden text-[13px] leading-[1.45] text-[#4a5058]">
+      <p className="m-0 line-clamp-2 flex-1 overflow-hidden text-sm leading-snug text-muted-foreground">
         {goal.description ? highlight(goal.description, query) : ''}
       </p>
 
-      <div className="inline-flex items-center gap-[6px] text-[12px] tabular-nums text-[#8a909a]">
+      <div className="inline-flex items-center gap-1.5 text-caption tabular-nums">
         <Calendar size={12} strokeWidth={1.4} className="opacity-85" />
         Target · {formatTarget(goal.time_bound)}
       </div>
@@ -174,6 +178,7 @@ export default function GoalListCard({
         onClick={handleClick}
         onKeyDown={handleKeyDown}
         className={cardClass}
+        style={{ minHeight: 196 }}
       >
         {inner}
       </div>
@@ -185,6 +190,7 @@ export default function GoalListCard({
       href={`/dashboard/goals/${goal.id}`}
       onClick={handleClick}
       className={cardClass}
+      style={{ minHeight: 196 }}
     >
       {inner}
     </Link>

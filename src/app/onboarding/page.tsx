@@ -269,7 +269,7 @@ export default function OnboardingPage() {
           {/* Navigation buttons */}
           <div className="flex gap-3">
             <Button
-              variant="outline"
+              variant="tertiary"
               onClick={handlePrev}
               disabled={step === 0}
               className="flex-1"
