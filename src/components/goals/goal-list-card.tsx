@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Calendar } from 'lucide-react';
 import { ReactNode } from 'react';
 import type { VelocityState } from '@/lib/progress/types';
+import { Badge, Progress } from '@/components/ui';
 
 export interface GoalListCardData {
   id: string;
@@ -69,17 +70,20 @@ const VELOCITY_EMOJI: Record<Exclude<VelocityState, 'ZERO'>, string> = {
   LAGGING: '🏃',
 };
 
-const VELOCITY_BADGE_CLS: Record<Exclude<VelocityState, 'ZERO'>, string> = {
-  AHEAD: 'border-success/40 bg-success/10',
-  STEADY: 'border-primary/40 bg-primary/10',
-  LAGGING: 'border-destructive/40 bg-destructive/10',
+const VELOCITY_TONE: Record<VelocityState, 'primary' | 'success' | 'destructive'> = {
+  ZERO: 'primary',
+  AHEAD: 'success',
+  STEADY: 'primary',
+  LAGGING: 'destructive',
 };
 
-const VELOCITY_BAR_FILL: Record<VelocityState, string> = {
-  ZERO: 'bg-primary',
-  AHEAD: 'bg-success',
-  STEADY: 'bg-primary',
-  LAGGING: 'bg-destructive',
+const VELOCITY_BADGE_VARIANT: Record<
+  Exclude<VelocityState, 'ZERO'>,
+  'primary' | 'success' | 'destructive'
+> = {
+  AHEAD: 'success',
+  STEADY: 'primary',
+  LAGGING: 'destructive',
 };
 
 function ProgressFooter({
@@ -92,21 +96,19 @@ function ProgressFooter({
   const clampedPct = Math.min(100, Math.max(0, pct));
   return (
     <div className="mt-0.5 flex items-center gap-2 border-t border-border pt-2.5">
-      <div className="relative h-2 flex-1 overflow-visible rounded-full bg-muted">
-        <div
-          className={`h-full rounded-full transition-all duration-150 ease-out ${VELOCITY_BAR_FILL[state]}`}
-          style={{ width: `${clampedPct}%` }}
-        />
-        {state !== 'ZERO' && (
-          <span
-            className={`absolute top-1/2 inline-flex -translate-x-1/2 -translate-y-1/2 items-center rounded-full border-2 px-1.5 py-px text-xs leading-none ${VELOCITY_BADGE_CLS[state]}`}
-            style={{ left: `${clampedPct}%` }}
-            aria-hidden
-          >
-            {VELOCITY_EMOJI[state]}
-          </span>
-        )}
-      </div>
+      <Progress
+        className="flex-1"
+        aria-label={`Progress: ${clampedPct}%`}
+        value={clampedPct}
+        tone={VELOCITY_TONE[state]}
+        marker={
+          state !== 'ZERO' ? (
+            <Badge shape="marker" variant={VELOCITY_BADGE_VARIANT[state]} aria-hidden>
+              {VELOCITY_EMOJI[state]}
+            </Badge>
+          ) : undefined
+        }
+      />
       <span className="shrink-0 text-caption tabular-nums">
         {clampedPct}%
       </span>
