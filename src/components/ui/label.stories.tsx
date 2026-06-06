@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { Label } from './label';
-import docs from '../../../docs/components/label.md?raw';
+import docs from './label.md?raw';
 
 const meta: Meta<typeof Label> = {
   title: 'Atoms/Label',

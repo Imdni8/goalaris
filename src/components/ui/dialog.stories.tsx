@@ -29,7 +29,7 @@ export const Default: Story = {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit goal</DialogTitle>
-          <DialogDescription>Make changes and save when you're done.</DialogDescription>
+          <DialogDescription>Make changes and save when you&apos;re done.</DialogDescription>
         </DialogHeader>
         <p className="text-body">Dialog body content goes here.</p>
         <DialogFooter>

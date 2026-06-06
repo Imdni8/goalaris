@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { Badge } from './badge';
-import docs from '../../../docs/components/badge.md?raw';
+import docs from './badge.md?raw';
 
 const meta: Meta<typeof Badge> = {
   title: 'Atoms/Badge',

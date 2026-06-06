@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { Input } from './input';
-import docs from '../../../docs/components/input.md?raw';
+import docs from './input.md?raw';
 
 const meta: Meta<typeof Input> = {
   title: 'Atoms/Input',

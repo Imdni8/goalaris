@@ -2,7 +2,8 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { Label } from './label';
 
-export interface FormFieldProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface FormFieldProps
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> {
   /** Label text. Required so every control has an accessible name. */
   label: React.ReactNode;
   /** Mark the field as required — adds a visual asterisk and aria-required on the control. */

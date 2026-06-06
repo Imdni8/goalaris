@@ -40,6 +40,13 @@
     ".next/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "**/*.stories.tsx",
+    "**/*.stories.ts",
+    "**/*.test.tsx",
+    "**/*.test.ts",
+    ".storybook",
+    "vitest.config.ts",
+    "vitest.setup.ts"
   ]
 }

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { ArrowRight, Plus, Save, Settings } from 'lucide-react';
 import { Button } from './button';
-import docs from '../../../docs/components/button.md?raw';
+import docs from './button.md?raw';
 
 const meta: Meta<typeof Button> = {
   title: 'Atoms/Button',

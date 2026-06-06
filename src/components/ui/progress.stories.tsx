@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { Progress } from './progress';
 import { Badge } from './badge';
-import docs from '../../../docs/components/progress.md?raw';
+import docs from './progress.md?raw';
 
 const meta: Meta<typeof Progress> = {
   title: 'Atoms/Progress',

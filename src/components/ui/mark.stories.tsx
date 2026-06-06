@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { Mark, highlightMatches } from './mark';
-import docs from '../../../docs/components/mark.md?raw';
+import docs from './mark.md?raw';
 
 const meta: Meta<typeof Mark> = {
   title: 'Atoms/Mark',
