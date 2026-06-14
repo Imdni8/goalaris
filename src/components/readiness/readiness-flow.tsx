@@ -8,13 +8,22 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { SpiderChart, type SpiderAxis } from './spider-chart';
+import { InterviewProgress } from './interview-progress';
 import { RoleCombobox } from './role-combobox';
-import type { Rubric, Diagnosis } from '@/lib/ai/agents/diagnosis/types';
+import type { Rubric, Diagnosis, CompetencyAxis, EvidenceStrength } from '@/lib/ai/agents/diagnosis/types';
 
 type Step = 'rubric' | 'interview' | 'diagnosis';
 interface ChatMsg {
   role: 'user' | 'assistant';
   content: string;
+}
+type StrengthMap = Record<string, EvidenceStrength>;
+/** Shape of an assessor turn returned by /assess. */
+interface AssessTurn {
+  reply: string;
+  focusKey?: string;
+  strengths?: StrengthMap;
+  readyToDiagnose?: boolean;
 }
 
 async function postJSON<T>(url: string, body: unknown): Promise<T> {
@@ -46,6 +55,9 @@ export function ReadinessFlow() {
   const [transcript, setTranscript] = useState<ChatMsg[]>([]);
   const [message, setMessage] = useState('');
   const [managerFeedback, setManagerFeedback] = useState('');
+  const [strengths, setStrengths] = useState<StrengthMap>({});
+  const [focusKey, setFocusKey] = useState<string | null>(null);
+  const [readyToDiagnose, setReadyToDiagnose] = useState(false);
 
   // diagnosis step
   const [diagnosis, setDiagnosis] = useState<Diagnosis | null>(null);
@@ -77,17 +89,35 @@ export function ReadinessFlow() {
       const { id } = await postJSON<{ id: string }>(`${BASE}/rubric/approve`, {
         rubric,
         source: jdText ? 'uploaded' : 'generated',
+        resumeText: resumeText || undefined,
+        jdText: jdText || undefined,
       });
       setRubricId(id);
       setStep('interview');
+      setStrengths({});
+      setFocusKey(null);
+      setReadyToDiagnose(false);
       // kick off the interview with the coach's opening question
-      const { reply } = await postJSON<{ reply: string }>(`${BASE}/assess`, {
+      const turn = await postJSON<AssessTurn>(`${BASE}/assess`, {
         rubricId: id,
         transcript: [],
         userMessage: "I'm ready to start.",
+        strengths: {},
       });
-      setTranscript([{ role: 'assistant', content: reply }]);
+      setTranscript([{ role: 'assistant', content: turn.reply }]);
+      applyTurnProgress(turn);
     });
+
+  const applyTurnProgress = (turn: AssessTurn) => {
+    // The server merges evidence-strength monotonically and code-gates readiness,
+    // so we just adopt what it returns. A settled competency never reverts, and a
+    // stale focusKey pointing at an already-settled axis is suppressed so a done
+    // pill can't flip back to "current".
+    const merged = turn.strengths ?? {};
+    setStrengths(merged);
+    setFocusKey(turn.focusKey && !merged[turn.focusKey] ? turn.focusKey : null);
+    setReadyToDiagnose(Boolean(turn.readyToDiagnose));
+  };
 
   const send = () =>
     guard(async () => {
@@ -96,12 +126,20 @@ export function ReadinessFlow() {
       const next = [...transcript, userMsg];
       setTranscript(next);
       setMessage('');
-      const { reply } = await postJSON<{ reply: string }>(`${BASE}/assess`, {
+      const turn = await postJSON<AssessTurn>(`${BASE}/assess`, {
         rubricId,
         transcript: next,
         userMessage: userMsg.content,
+        strengths,
       });
-      setTranscript([...next, { role: 'assistant', content: reply }]);
+      const withReply = [...next, { role: 'assistant' as const, content: turn.reply }];
+      setTranscript(withReply);
+      applyTurnProgress(turn);
+      // The coach runs the diagnosis itself the moment it has enough — the user
+      // never has to click "Run diagnosis" once it's said it's ready.
+      if (turn.readyToDiagnose) {
+        await performDiagnosis(withReply);
+      }
     });
 
   const addManagerFeedback = () =>
@@ -119,18 +157,21 @@ export function ReadinessFlow() {
       ]);
     });
 
-  const runDiagnose = () =>
-    guard(async () => {
-      if (!rubricId) return;
-      const result = await postJSON<Diagnosis>(`${BASE}/diagnose`, {
-        rubricId,
-        transcript,
-        resumeText: resumeText || undefined,
-        managerFeedback: managerFeedback || undefined,
-      });
-      setDiagnosis(result);
-      setStep('diagnosis');
+  // The actual diagnosis call, without the busy/error guard so it can be invoked
+  // both directly (manual button) and inline from `send` (auto-run when ready).
+  const performDiagnosis = async (transcriptOverride?: ChatMsg[]) => {
+    if (!rubricId) return;
+    const result = await postJSON<Diagnosis>(`${BASE}/diagnose`, {
+      rubricId,
+      transcript: transcriptOverride ?? transcript,
+      resumeText: resumeText || undefined,
+      managerFeedback: managerFeedback || undefined,
     });
+    setDiagnosis(result);
+    setStep('diagnosis');
+  };
+
+  const runDiagnose = () => guard(performDiagnosis);
 
   return (
     <div className="space-y-6">
@@ -151,6 +192,10 @@ export function ReadinessFlow() {
       {step === 'interview' && (
         <InterviewStep
           {...{ transcript, message, setMessage, managerFeedback, setManagerFeedback, busy }}
+          competencies={rubric?.competencies ?? []}
+          strengths={strengths}
+          focusKey={focusKey}
+          readyToDiagnose={readyToDiagnose}
           onSend={send}
           onAddManagerFeedback={addManagerFeedback}
           onDiagnose={runDiagnose}
@@ -324,12 +369,25 @@ function InterviewStep(props: {
   managerFeedback: string;
   setManagerFeedback: (v: string) => void;
   busy: boolean;
+  competencies: CompetencyAxis[];
+  strengths: StrengthMap;
+  focusKey: string | null;
+  readyToDiagnose: boolean;
   onSend: () => void;
   onAddManagerFeedback: () => void;
   onDiagnose: () => void;
 }) {
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="space-y-4">
+      {props.competencies.length > 0 && (
+        <InterviewProgress
+          competencies={props.competencies}
+          strengths={props.strengths}
+          focusKey={props.focusKey}
+        />
+      )}
+
+      <div className="grid gap-4 md:grid-cols-3">
       <Card className="md:col-span-2">
         <CardHeader>
           <CardTitle>Assessment interview</CardTitle>
@@ -390,9 +448,22 @@ function InterviewStep(props: {
           </CardContent>
         </Card>
 
-        <Button className="w-full" onClick={props.onDiagnose} disabled={props.busy}>
-          {props.busy ? 'Working…' : 'Run diagnosis'}
-        </Button>
+        <div className="space-y-1.5">
+          <Button
+            className="w-full"
+            variant={props.readyToDiagnose ? 'primary' : 'tertiary'}
+            onClick={props.onDiagnose}
+            disabled={props.busy}
+          >
+            {props.busy ? 'Working…' : 'Run diagnosis'}
+          </Button>
+          {props.readyToDiagnose && (
+            <p className="text-center text-caption text-success">
+              The coach thinks there’s enough to run a diagnosis.
+            </p>
+          )}
+        </div>
+      </div>
       </div>
     </div>
   );
@@ -458,7 +529,7 @@ function DiagnosisStep({ diagnosis, rubric }: { diagnosis: Diagnosis; rubric: Ru
             <div key={i} className="flex items-start gap-3 rounded-md border border-border p-3">
               <Badge variant="default">{d.lens}</Badge>
               <div>
-                <p className="text-body font-medium text-foreground">{labelOf(d.competency_key)}</p>
+                <p className="text-body font-medium text-foreground">{d.title}</p>
                 <p className="text-caption text-muted-foreground">{d.summary}</p>
               </div>
             </div>

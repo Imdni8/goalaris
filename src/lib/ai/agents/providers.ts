@@ -50,10 +50,11 @@ function getFallbackModel(): OpenAIChatCompletionsModel {
  * in a later slice. The existing getPrimaryRunner/getFallbackRunner (used by the POC
  * `coachAgent`) are left untouched.
  */
-export type PipelineStage = 'rubric' | 'interview' | 'diagnosis';
+export type PipelineStage = 'rubric' | 'planner' | 'interview' | 'diagnosis';
 
 const STAGE_MODELS: Record<PipelineStage, string> = {
   rubric: 'gpt-4.1-mini', // structured extraction from a JD
+  planner: 'gpt-4.1-mini', // JD−résumé delta into a ranked probe plan (one upfront call)
   interview: 'gpt-4.1-mini', // routine conversational turns
   diagnosis: 'gpt-4.1', // current-vs-target judgment + confidence — quality-critical
 };

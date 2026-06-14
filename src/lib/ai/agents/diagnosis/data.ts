@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { RubricSchema, type Rubric } from './types';
+import { RubricSchema, InterviewPlanSchema, type Rubric, type InterviewPlan } from './types';
 import type { EvidenceLite, ProfileLite } from './run';
 
 /** Load an approved rubric the user owns, validated back into a Rubric. */
@@ -22,6 +22,38 @@ export async function loadRubric(
   });
   if (!parsed.success) throw new Error('stored rubric is malformed');
   return parsed.data;
+}
+
+/** Load the interview plan stored on a rubric (null when planning was skipped/failed). */
+export async function loadPlan(
+  supabase: SupabaseClient,
+  userId: string,
+  rubricId: string,
+): Promise<InterviewPlan | null> {
+  const { data, error } = await supabase
+    .from('ca_target_rubric')
+    .select('plan')
+    .eq('id', rubricId)
+    .eq('user_id', userId)
+    .single();
+  if (error || !data?.plan) return null;
+  const parsed = InterviewPlanSchema.safeParse(data.plan);
+  return parsed.success ? parsed.data : null;
+}
+
+/** Persist the interview plan onto an already-approved rubric the user owns. */
+export async function savePlan(
+  supabase: SupabaseClient,
+  userId: string,
+  rubricId: string,
+  plan: InterviewPlan,
+): Promise<void> {
+  const { error } = await supabase
+    .from('ca_target_rubric')
+    .update({ plan })
+    .eq('id', rubricId)
+    .eq('user_id', userId);
+  if (error) throw error;
 }
 
 /** Load the user's evidence ledger as lightweight rows for prompt-building. */
