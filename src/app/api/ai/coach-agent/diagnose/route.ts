@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { isCoachAgentEnabled } from '@/lib/ai/agents/diagnosis/flag';
 import { runDiagnosis, type ChatMsg } from '@/lib/ai/agents/diagnosis/run';
-import { loadRubric, loadEvidence } from '@/lib/ai/agents/diagnosis/data';
+import { loadRubric, loadEvidence, loadPlan } from '@/lib/ai/agents/diagnosis/data';
 
 /**
  * POST { rubricId, transcript, resumeText?, managerFeedback? } → Diagnosis
@@ -29,14 +29,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing rubricId' }, { status: 400 });
     }
 
-    const [rubric, evidence] = await Promise.all([
+    const [rubric, evidence, plan] = await Promise.all([
       loadRubric(supabase, user.id, rubricId),
       loadEvidence(supabase, user.id),
+      loadPlan(supabase, user.id, rubricId),
     ]);
 
     const diagnosis = await runDiagnosis(
       {
         rubric,
+        plan,
         evidence,
         resumeText,
         managerFeedback,
