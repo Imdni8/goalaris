@@ -54,8 +54,49 @@ export const InterviewPlanItemSchema = z.object({
 });
 export type InterviewPlanItem = z.infer<typeof InterviewPlanItemSchema>;
 
+// ── Hard requirements (literal JD qualifications, reconciled vs résumé) ──────
+/**
+ * The JD's NON-competency gates: years of experience, degree/field, domain or
+ * industry, and named tools. These never become spider-chart axes, but they're
+ * often the MOST material résumé↔JD gaps (a healthcare designer applying to an
+ * enterprise-ERP role; 6 years against a "7+" bar; a non-design degree). Computed
+ * once by the planner so the interview can probe the *addressable* ones (domain
+ * transfer) and the diagnosis can surface the fixed ones (years, degree) instead
+ * of silently ignoring them — which is how they used to slip through.
+ */
+export const HARD_REQUIREMENT_KINDS = [
+  'experience_years',
+  'education',
+  'domain',
+  'tooling',
+  'certification',
+  'other',
+] as const;
+export const HARD_REQUIREMENT_STATUSES = ['met', 'partial', 'unmet'] as const;
+export const HardRequirementSchema = z.object({
+  requirement: z
+    .string()
+    .describe('the literal JD qualification, e.g. "7+ years in enterprise/platform product design"'),
+  kind: z.enum(HARD_REQUIREMENT_KINDS),
+  resume_status: z
+    .enum(HARD_REQUIREMENT_STATUSES)
+    .describe('met / partial / unmet, judged strictly from the résumé + profile'),
+  note: z
+    .string()
+    .describe('the specific gap, or the evidence that satisfies it, in one concrete line'),
+  interview_addressable: z
+    .boolean()
+    .describe(
+      'true when conversation could change the read (e.g. whether prior-domain experience transfers); false for fixed facts like years or degree',
+    ),
+});
+export type HardRequirement = z.infer<typeof HardRequirementSchema>;
+
 export const InterviewPlanSchema = z.object({
   items: z.array(InterviewPlanItemSchema),
+  hard_requirements: z
+    .array(HardRequirementSchema)
+    .describe('literal JD qualifications reconciled against the résumé; [] only when the JD states none'),
 });
 export type InterviewPlan = z.infer<typeof InterviewPlanSchema>;
 

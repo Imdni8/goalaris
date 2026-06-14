@@ -101,9 +101,13 @@ Compute the JD−résumé delta and return the plan.`;
 
   const result = await getRunnerFor('planner').run(interviewPlannerAgent, prompt, { context });
   if (!result.finalOutput) throw new Error('interview planner produced no output');
-  // Defensive: keep only plan items whose key exists on the rubric.
+  // Defensive: keep only plan items whose key exists on the rubric. Hard
+  // requirements are not keyed to the rubric, so they pass through untouched.
   const validKeys = new Set(input.rubric.competencies.map((c) => c.key));
-  return { items: result.finalOutput.items.filter((i) => validKeys.has(i.key)) };
+  return {
+    items: result.finalOutput.items.filter((i) => validKeys.has(i.key)),
+    hard_requirements: result.finalOutput.hard_requirements ?? [],
+  };
 }
 
 // ── Stage 2: assessor turn ──────────────────────────────────────────────────
@@ -128,6 +132,17 @@ function planBlock(plan: InterviewPlan | null, rubric: Rubric): string {
     .map(
       (i) =>
         `- ${i.key} (${labelOf(i.key)}) | priority ${i.gap_priority} | budget ${i.probe_budget} | résumé shows: ${i.resume_evidence}`,
+    )
+    .join('\n');
+}
+
+/** The JD's literal qualifications (years/degree/domain/tools) reconciled vs the résumé. */
+function hardReqBlock(plan: InterviewPlan | null): string {
+  if (!plan?.hard_requirements?.length) return '(none on file)';
+  return plan.hard_requirements
+    .map(
+      (h) =>
+        `- [${h.resume_status} · ${h.interview_addressable ? 'addressable' : 'fixed'}] ${h.requirement} — ${h.note}`,
     )
     .join('\n');
 }
@@ -193,6 +208,9 @@ ${input.rubric.competencies.map((c) => `- ${c.label} (${c.key}) — target ${c.t
 INTERVIEW PLAN (drive the highest-priority UNSETTLED competency):
 ${planBlock(input.plan, input.rubric)}
 
+HARD REQUIREMENTS (literal JD qualifications vs résumé — probe an "addressable" unmet one ONCE; never quiz "fixed" ones):
+${hardReqBlock(input.plan)}
+
 SETTLED STATE so far (evidence-strength already recorded — do NOT re-probe these):
 ${strengthsBlock(input.strengths, input.rubric)}
 
@@ -231,6 +249,7 @@ Respond with your single best next coaching turn and the structured progress fie
 export async function runDiagnosis(
   input: {
     rubric: Rubric;
+    plan?: InterviewPlan | null;
     transcript: ChatMsg[];
     evidence: EvidenceLite[];
     resumeText?: string;
@@ -242,6 +261,9 @@ export async function runDiagnosis(
 
 RUBRIC / AXES:
 ${input.rubric.competencies.map((c) => `- ${c.key} | ${c.label} | target ${c.target_level}/5 | ${c.description} | scale: ${c.scale}`).join('\n')}
+
+HARD REQUIREMENTS (literal JD qualifications reconciled vs résumé — surface unmet/partial ones as lens="other" development areas; never as chart axes):
+${hardReqBlock(input.plan ?? null)}
 
 INTERVIEW TRANSCRIPT:
 ${transcriptBlock(input.transcript)}

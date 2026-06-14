@@ -1,5 +1,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { RubricSchema, InterviewPlanSchema, type Rubric, type InterviewPlan } from './types';
+import { z } from 'zod';
+import {
+  RubricSchema,
+  InterviewPlanSchema,
+  InterviewPlanItemSchema,
+  type Rubric,
+  type InterviewPlan,
+} from './types';
 import type { EvidenceLite, ProfileLite } from './run';
 
 /** Load an approved rubric the user owns, validated back into a Rubric. */
@@ -38,7 +45,11 @@ export async function loadPlan(
     .single();
   if (error || !data?.plan) return null;
   const parsed = InterviewPlanSchema.safeParse(data.plan);
-  return parsed.success ? parsed.data : null;
+  if (parsed.success) return parsed.data;
+  // Tolerate plans persisted before `hard_requirements` existed: keep the items,
+  // default the new field to empty rather than discarding the whole plan.
+  const legacy = z.object({ items: z.array(InterviewPlanItemSchema) }).safeParse(data.plan);
+  return legacy.success ? { ...legacy.data, hard_requirements: [] } : null;
 }
 
 /** Persist the interview plan onto an already-approved rubric the user owns. */
