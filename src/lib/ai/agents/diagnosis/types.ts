@@ -27,6 +27,89 @@ export const RubricSchema = z.object({
 });
 export type Rubric = z.infer<typeof RubricSchema>;
 
+// ── Interview plan (upfront JD−résumé delta) ────────────────────────────────
+/**
+ * Computed ONCE at rubric-approval time from the rubric + résumé (+ JD). It turns
+ * coverage from an improvised, per-turn LLM guess into a planned thing: for each
+ * competency, what the role demands, what the résumé already proves, the gap
+ * priority, and how many questions to spend. The interviewer reads this each turn
+ * to front-load the silent (high-priority) areas and avoid re-confirming strengths.
+ */
+export const GAP_PRIORITIES = ['high', 'medium', 'low'] as const;
+export const InterviewPlanItemSchema = z.object({
+  key: z.string().describe('the rubric competency key this item plans for'),
+  jd_requirement: z.string().describe('what the target role demands for this competency'),
+  resume_evidence: z
+    .string()
+    .describe('what the résumé/profile already evidences for it, or "(none found)" when silent'),
+  gap_priority: z
+    .enum(GAP_PRIORITIES)
+    .describe('interview attention this needs — "high" when the JD demands it and the résumé is silent'),
+  probe_budget: z
+    .number()
+    .int()
+    .min(0)
+    .max(4)
+    .describe('how many interview questions to spend here (0 for an already well-evidenced strength)'),
+});
+export type InterviewPlanItem = z.infer<typeof InterviewPlanItemSchema>;
+
+export const InterviewPlanSchema = z.object({
+  items: z.array(InterviewPlanItemSchema),
+});
+export type InterviewPlan = z.infer<typeof InterviewPlanSchema>;
+
+// ── Evidence strength (tracked, monotonic) ──────────────────────────────────
+/**
+ * How well-evidenced a competency is, ordered weakest→strongest. Replaces the
+ * old "covered: yes/no" so that an absence of evidence ("none") is a settled,
+ * recorded result the coach acts on — not a prompt to keep re-drilling.
+ */
+export const EVIDENCE_STRENGTHS = ['none', 'self_report', 'corroborated'] as const;
+export const EvidenceStrengthSchema = z.enum(EVIDENCE_STRENGTHS);
+export type EvidenceStrength = z.infer<typeof EvidenceStrengthSchema>;
+/** Rank for monotonic merge — strength only ever ratchets up across turns. */
+export const STRENGTH_RANK: Record<EvidenceStrength, number> = {
+  none: 1,
+  self_report: 2,
+  corroborated: 3,
+};
+/** Strengths at/above this rank count as "covered" (real evidence) for the chart/diagnosis. */
+export const COVERED_MIN_RANK = STRENGTH_RANK.self_report;
+
+// ── Assessor turn ─────────────────────────────────────────────────────────
+/**
+ * Structured output for a single interview turn. Beyond the spoken `reply`, the
+ * assessor reports which competency it's probing and the evidence-strength it
+ * settled THIS turn. The route merges those updates monotonically into carried
+ * session state, so coverage can't regress and readiness is code-gated.
+ */
+export const CompetencyUpdateSchema = z.object({
+  key: z.string().describe('the rubric competency key being updated'),
+  evidence_strength: EvidenceStrengthSchema.describe(
+    'the strength you settled on for this competency given the answer just received',
+  ),
+});
+export type CompetencyUpdate = z.infer<typeof CompetencyUpdateSchema>;
+
+export const AssessorTurnSchema = z.object({
+  reply: z.string().describe('the single next thing the coach says to the user'),
+  focus_competency_key: z
+    .string()
+    .describe(
+      "the rubric competency 'key' this turn is primarily probing; empty string for a pure opening greeting or closing remark",
+    ),
+  competency_updates: z
+    .array(CompetencyUpdateSchema)
+    .describe(
+      'evidence-strength you settled THIS turn (usually just the focus competency); merged monotonically server-side',
+    ),
+  ready_to_diagnose: z
+    .boolean()
+    .describe('your judgment that further questioning would add little; the server makes the final call'),
+});
+export type AssessorTurn = z.infer<typeof AssessorTurnSchema>;
+
 // ── Diagnosis ───────────────────────────────────────────────────────────────
 export const AxisDiagnosisSchema = z.object({
   competency_key: z.string(),
@@ -42,6 +125,10 @@ export type AxisDiagnosis = z.infer<typeof AxisDiagnosisSchema>;
 
 export const DevelopmentAreaSchema = z.object({
   competency_key: z.string(),
+  // Human-readable heading. Required because an "other"-lens area need not map to
+  // a rubric competency, so the UI can't always resolve a label from the key —
+  // without this it would surface the raw snake_case key (e.g. "documentation_practices").
+  title: z.string().describe('short human-readable heading for this development area, in Title Case'),
   summary: z.string(),
   // optional coaching lens — NOT the structural taxonomy
   lens: z.enum(['knowledge', 'visibility', 'experience', 'other']),

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,13 +9,24 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { SpiderChart, type SpiderAxis } from './spider-chart';
+import { InterviewProgress } from './interview-progress';
 import { RoleCombobox } from './role-combobox';
-import type { Rubric, Diagnosis } from '@/lib/ai/agents/diagnosis/types';
+import type { Rubric, Diagnosis, CompetencyAxis, EvidenceStrength } from '@/lib/ai/agents/diagnosis/types';
 
 type Step = 'rubric' | 'interview' | 'diagnosis';
 interface ChatMsg {
   role: 'user' | 'assistant';
   content: string;
+}
+type StrengthMap = Record<string, EvidenceStrength>;
+type ProbeMap = Record<string, number>;
+/** Shape of an assessor turn returned by /assess. */
+interface AssessTurn {
+  reply: string;
+  focusKey?: string;
+  strengths?: StrengthMap;
+  probes?: ProbeMap;
+  readyToDiagnose?: boolean;
 }
 
 async function postJSON<T>(url: string, body: unknown): Promise<T> {
@@ -46,9 +58,17 @@ export function ReadinessFlow() {
   const [transcript, setTranscript] = useState<ChatMsg[]>([]);
   const [message, setMessage] = useState('');
   const [managerFeedback, setManagerFeedback] = useState('');
+  const [strengths, setStrengths] = useState<StrengthMap>({});
+  const [probes, setProbes] = useState<ProbeMap>({});
+  const [focusKey, setFocusKey] = useState<string | null>(null);
+  const [readyToDiagnose, setReadyToDiagnose] = useState(false);
 
   // diagnosis step
   const [diagnosis, setDiagnosis] = useState<Diagnosis | null>(null);
+  // True while the (auto- or manually-) triggered diagnosis call is in flight, so
+  // the interview composer can be locked — otherwise the user can keep typing an
+  // answer that vanishes the instant the diagnosis returns and the screen swaps.
+  const [diagnosing, setDiagnosing] = useState(false);
 
   const guard = async (fn: () => Promise<void>) => {
     setError(null);
@@ -77,17 +97,37 @@ export function ReadinessFlow() {
       const { id } = await postJSON<{ id: string }>(`${BASE}/rubric/approve`, {
         rubric,
         source: jdText ? 'uploaded' : 'generated',
+        resumeText: resumeText || undefined,
+        jdText: jdText || undefined,
       });
       setRubricId(id);
       setStep('interview');
+      setStrengths({});
+      setProbes({});
+      setFocusKey(null);
+      setReadyToDiagnose(false);
       // kick off the interview with the coach's opening question
-      const { reply } = await postJSON<{ reply: string }>(`${BASE}/assess`, {
+      const turn = await postJSON<AssessTurn>(`${BASE}/assess`, {
         rubricId: id,
         transcript: [],
         userMessage: "I'm ready to start.",
+        strengths: {},
+        probes: {},
       });
-      setTranscript([{ role: 'assistant', content: reply }]);
+      setTranscript([{ role: 'assistant', content: turn.reply }]);
+      applyTurnProgress(turn);
     });
+
+  const applyTurnProgress = (turn: AssessTurn) => {
+    // The server merges evidence-strength + probe counts monotonically and
+    // code-gates readiness, so we just adopt what it returns. focusKey is the
+    // competency now being probed (the active topic) — we keep it as-is so the
+    // timeline can highlight it even while it already has partial evidence.
+    setStrengths(turn.strengths ?? {});
+    setProbes(turn.probes ?? {});
+    setFocusKey(turn.focusKey || null);
+    setReadyToDiagnose(Boolean(turn.readyToDiagnose));
+  };
 
   const send = () =>
     guard(async () => {
@@ -96,12 +136,21 @@ export function ReadinessFlow() {
       const next = [...transcript, userMsg];
       setTranscript(next);
       setMessage('');
-      const { reply } = await postJSON<{ reply: string }>(`${BASE}/assess`, {
+      const turn = await postJSON<AssessTurn>(`${BASE}/assess`, {
         rubricId,
         transcript: next,
         userMessage: userMsg.content,
+        strengths,
+        probes,
       });
-      setTranscript([...next, { role: 'assistant', content: reply }]);
+      const withReply = [...next, { role: 'assistant' as const, content: turn.reply }];
+      setTranscript(withReply);
+      applyTurnProgress(turn);
+      // The coach runs the diagnosis itself the moment it has enough — the user
+      // never has to click "Run diagnosis" once it's said it's ready.
+      if (turn.readyToDiagnose) {
+        await performDiagnosis(withReply);
+      }
     });
 
   const addManagerFeedback = () =>
@@ -119,23 +168,33 @@ export function ReadinessFlow() {
       ]);
     });
 
-  const runDiagnose = () =>
-    guard(async () => {
-      if (!rubricId) return;
+  // The actual diagnosis call, without the busy/error guard so it can be invoked
+  // both directly (manual button) and inline from `send` (auto-run when ready).
+  // `diagnosing` locks the composer for the whole in-flight window so the user
+  // can't half-type an answer that disappears when the screen swaps to results.
+  const performDiagnosis = async (transcriptOverride?: ChatMsg[]) => {
+    if (!rubricId) return;
+    setDiagnosing(true);
+    try {
       const result = await postJSON<Diagnosis>(`${BASE}/diagnose`, {
         rubricId,
-        transcript,
+        transcript: transcriptOverride ?? transcript,
         resumeText: resumeText || undefined,
         managerFeedback: managerFeedback || undefined,
       });
       setDiagnosis(result);
       setStep('diagnosis');
-    });
+    } finally {
+      setDiagnosing(false);
+    }
+  };
+
+  const runDiagnose = () => guard(performDiagnosis);
 
   return (
     <div className="space-y-6">
       {error && (
-        <div className="rounded-md border border-destructive/40 bg-destructive/5 px-4 py-2 text-body text-destructive">
+        <div className="text-body rounded-md border border-destructive/40 bg-destructive/5 px-4 py-2 text-destructive">
           {error}
         </div>
       )}
@@ -151,6 +210,11 @@ export function ReadinessFlow() {
       {step === 'interview' && (
         <InterviewStep
           {...{ transcript, message, setMessage, managerFeedback, setManagerFeedback, busy }}
+          competencies={rubric?.competencies ?? []}
+          strengths={strengths}
+          focusKey={focusKey}
+          readyToDiagnose={readyToDiagnose}
+          diagnosing={diagnosing}
           onSend={send}
           onAddManagerFeedback={addManagerFeedback}
           onDiagnose={runDiagnose}
@@ -215,10 +279,10 @@ function RubricStep(props: {
   const { rubric, setRubric } = props;
   const [pdfError, setPdfError] = useState<string | null>(null);
 
-  const patch = (i: number, key: 'label' | 'description' | 'target_level', value: string) => {
+  const patch = (i: number, key: 'label' | 'description', value: string) => {
     if (!rubric) return;
     const competencies = rubric.competencies.map((c, idx) =>
-      idx === i ? { ...c, [key]: key === 'target_level' ? Number(value) : value } : c,
+      idx === i ? { ...c, [key]: value } : c,
     );
     setRubric({ ...rubric, competencies });
   };
@@ -231,7 +295,7 @@ function RubricStep(props: {
         </CardHeader>
         <CardContent className="space-y-4">
           {pdfError && (
-            <div className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-caption text-destructive">
+            <div className="text-caption rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-destructive">
               {pdfError}
             </div>
           )}
@@ -279,26 +343,17 @@ function RubricStep(props: {
             <CardTitle>Review the rubric — these become your chart axes</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <p className="text-caption text-muted-foreground">
+              These are the abilities {rubric.role_title} expects. You’ll be scored relative to
+              this bar — no need to set target levels.
+            </p>
             {rubric.competencies.map((c, i) => (
               <div key={c.key} className="space-y-1.5 rounded-md border border-border p-3">
-                <div className="flex items-center gap-2">
-                  <Input
-                    className="font-medium"
-                    value={c.label}
-                    onChange={(e) => patch(i, 'label', e.target.value)}
-                  />
-                  <div className="flex items-center gap-1">
-                    <span className="text-caption text-muted-foreground">target</span>
-                    <Input
-                      className="w-16"
-                      type="number"
-                      min={1}
-                      max={5}
-                      value={c.target_level}
-                      onChange={(e) => patch(i, 'target_level', e.target.value)}
-                    />
-                  </div>
-                </div>
+                <Input
+                  className="font-medium"
+                  value={c.label}
+                  onChange={(e) => patch(i, 'label', e.target.value)}
+                />
                 <Textarea
                   rows={2}
                   value={c.description}
@@ -324,25 +379,47 @@ function InterviewStep(props: {
   managerFeedback: string;
   setManagerFeedback: (v: string) => void;
   busy: boolean;
+  competencies: CompetencyAxis[];
+  strengths: StrengthMap;
+  focusKey: string | null;
+  readyToDiagnose: boolean;
+  diagnosing: boolean;
   onSend: () => void;
   onAddManagerFeedback: () => void;
   onDiagnose: () => void;
 }) {
+  // Keep the latest coach reply in view: the transcript is a fixed-height scroll
+  // box, so new turns land below the fold unless we pin it to the bottom.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [props.transcript, props.diagnosing]);
+
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="space-y-4">
+      {props.competencies.length > 0 && (
+        <InterviewProgress
+          competencies={props.competencies}
+          strengths={props.strengths}
+          focusKey={props.focusKey}
+        />
+      )}
+
+      <div className="grid gap-4 md:grid-cols-3">
       <Card className="md:col-span-2">
         <CardHeader>
           <CardTitle>Assessment interview</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="max-h-96 space-y-3 overflow-y-auto">
+          <div ref={scrollRef} className="max-h-96 space-y-3 overflow-y-auto">
             {props.transcript.map((m, i) => (
               <div
                 key={i}
                 className={
                   m.role === 'assistant'
-                    ? 'rounded-md bg-muted px-3 py-2 text-body text-foreground'
-                    : 'rounded-md bg-primary/10 px-3 py-2 text-body text-foreground'
+                    ? 'text-body rounded-md bg-muted px-3 py-2 text-foreground'
+                    : 'text-body rounded-md bg-primary/10 px-3 py-2 text-foreground'
                 }
               >
                 <span className="text-caption text-muted-foreground">
@@ -352,17 +429,25 @@ function InterviewStep(props: {
               </div>
             ))}
           </div>
-          <div className="flex gap-2">
-            <Textarea
-              rows={2}
-              placeholder="Answer the coach…"
-              value={props.message}
-              onChange={(e) => props.setMessage(e.target.value)}
-            />
-            <Button onClick={props.onSend} disabled={props.busy || !props.message.trim()}>
-              Send
-            </Button>
-          </div>
+          {props.diagnosing ? (
+            <div className="text-body flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2.5 text-foreground">
+              <Loader2 className="size-4 shrink-0 animate-spin text-primary" aria-hidden />
+              <span>Putting together your readiness picture — one moment…</span>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Textarea
+                rows={2}
+                placeholder="Answer the coach…"
+                value={props.message}
+                onChange={(e) => props.setMessage(e.target.value)}
+                disabled={props.busy}
+              />
+              <Button onClick={props.onSend} disabled={props.busy || !props.message.trim()}>
+                Send
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -390,9 +475,22 @@ function InterviewStep(props: {
           </CardContent>
         </Card>
 
-        <Button className="w-full" onClick={props.onDiagnose} disabled={props.busy}>
-          {props.busy ? 'Working…' : 'Run diagnosis'}
-        </Button>
+        <div className="space-y-1.5">
+          <Button
+            className="w-full"
+            variant={props.readyToDiagnose ? 'primary' : 'tertiary'}
+            onClick={props.onDiagnose}
+            disabled={props.busy || props.diagnosing}
+          >
+            {props.diagnosing ? 'Running diagnosis…' : props.busy ? 'Working…' : 'Run diagnosis'}
+          </Button>
+          {props.readyToDiagnose && !props.diagnosing && (
+            <p className="text-caption text-center text-success">
+              The coach thinks there’s enough to run a diagnosis.
+            </p>
+          )}
+        </div>
+      </div>
       </div>
     </div>
   );
@@ -418,6 +516,11 @@ function DiagnosisStep({ diagnosis, rubric }: { diagnosis: Diagnosis; rubric: Ru
         </CardHeader>
         <CardContent>
           <SpiderChart axes={axes} />
+          <p className="text-caption mt-3 text-muted-foreground">
+            Each axis is scored <span className="text-foreground">relative</span> to what{' '}
+            {rubric.role_title} expects — the outer “Target” ring is that bar, and “Current” is
+            where your evidence places you against it, not an absolute grade.
+          </p>
         </CardContent>
       </Card>
 
@@ -458,7 +561,7 @@ function DiagnosisStep({ diagnosis, rubric }: { diagnosis: Diagnosis; rubric: Ru
             <div key={i} className="flex items-start gap-3 rounded-md border border-border p-3">
               <Badge variant="default">{d.lens}</Badge>
               <div>
-                <p className="text-body font-medium text-foreground">{labelOf(d.competency_key)}</p>
+                <p className="text-body font-medium text-foreground">{d.title}</p>
                 <p className="text-caption text-muted-foreground">{d.summary}</p>
               </div>
             </div>
