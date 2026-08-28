@@ -158,10 +158,12 @@ export default function OnboardingPage() {
         throw error;
       }
 
-      // Force a refresh to get updated profile data in dashboard layout
-      await new Promise(resolve => setTimeout(resolve, 300));
-      router.refresh();
-      router.push('/dashboard');
+      // Full document navigation, not router.push(). The dashboard layout
+      // redirects here whenever onboarding_completed is false, and the App
+      // Router caches that redirect client-side. A soft push would replay the
+      // cached redirect and bounce the user straight back into onboarding.
+      window.location.assign('/dashboard');
+      return;
     } catch (error) {
       console.error('Onboarding error:', error);
       alert('Something went wrong. Please try again.');

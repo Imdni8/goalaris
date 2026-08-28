@@ -22,8 +22,8 @@ import {
   type CoachNoteContext,
 } from './prompts';
 
-const MODEL = 'gemini-2.5-flash-lite';
-const API_ENDPOINT = 'https://aiplatform.googleapis.com/v1/publishers/google/models';
+const MODEL = 'gemini-3.5-flash-lite';
+const API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 export async function callGemini(prompt: string): Promise<string> {
   const apiKey = process.env.GOOGLE_AI_API_KEY;
