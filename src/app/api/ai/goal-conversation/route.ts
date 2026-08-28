@@ -8,8 +8,8 @@ import {
   createRateLimitResponse,
 } from '@/lib/utils/rate-limiter';
 
-const MODEL = 'gemini-2.5-flash-lite';
-const API_ENDPOINT = 'https://aiplatform.googleapis.com/v1/publishers/google/models';
+const MODEL = 'gemini-3.5-flash-lite';
+const API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 export async function POST(request: NextRequest) {
   try {
